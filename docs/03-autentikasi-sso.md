@@ -17,6 +17,19 @@ Status: **Draft v0.1**
 - Mayoritas pengguna = pegawai yang memiliki email Google Workspace kampus.
 - Opsional: akun lokal EIP untuk kasus khusus (opsi di bawah).
 
+### Keputusan mode akses (2026-09)
+
+- **Login terbuka untuk semua akun domain kampus** (mis. `@kampus.ac.id`):
+  akun Google domain kampus yang valid boleh masuk ke EIP.
+- **Role ditetapkan manual per akun**: role (bukan sekadar email) yang membatasi
+  modul yang bisa diakses. Tanpa role khusus, akun hanya melihat antarmuka
+  dasar; role seperti `admin-gaji`, `approver-pengadaan`, `operator-aset`
+  diberikan manual oleh admin untuk membuka modul terkait.
+- Jadi: Google = siapa boleh login (domain). EIP = role menentukan modul apa
+  yang bisa diakses. Tidak perlu akun terkait data pegawai untuk sekedar login.
+- Cadangan: bila nanti butuh approval otomatis mengikuti hierarki, role dapat
+  diturunkan dari jabatan/`unit_kerja` (perluasan belakangan).
+
 ---
 
 ## 2. Alur login (Google sebagai IdP)
@@ -101,6 +114,6 @@ Untuk mayoritas, opsi A dipakai; opsi B hanya sebagai pelengkap bila perlu.
 
 - [ ] Daftar **domain email** yang diizinkan login (pastikan hanya
       @kampus.ac.id, cegah Google pribadi masuk).
-- [ ] Nama penyedia/klien OIDC resmi (harus dibuat di Google Cloud Console).
-- [ ] Skema **peran** awal yang dibutuhkan (admin, approver, pegawai, dst).
+- [ ] **Skema role** awal yang dibutuhkan (admin, approver, pegawai, dst).
+- [ ] Mekanisme pemberian role manual di UI admin (kelola akun → tetapkan role).
 - [ ] Apakah WA blast & akademik memakai Google langsung atau memercayai EIP.
