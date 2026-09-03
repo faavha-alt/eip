@@ -1,122 +1,146 @@
 # eip — Enterprise Integration Platform (EIP)
 
-Sistem terintegrasi kampus untuk menggabungkan modul **kepegawaian, gaji,
-perencanaan, aset, pengadaan, logistik BHP, WA blast**, dan nantinya
-**akademik** dalam satu aplikasi terpadu.
+Platform pusat baru untuk kampus yang **menyatukan data & alur lintas sistem**.
+EIP menjadi **master data pegawai (satu rujukan)** yang dibaca sistem-sistem
+berjalan, dan menjadi rumah bagi modul-modul yang belum ada.
 
 > File ini adalah **referensi global** (dibaca Claude Code dari root proyek).
-> Detail teknis lengkap ada di folder `docs/`. Jangan duplikasi isi panjang di
-> sini — cukup ringkas, akurat, dan menunjuk ke dokumen.
+> Detail teknis lengkap ada di folder `docs/`. Ringkas, akurat, menunjuk ke
+> dokumen — jangan duplikasi isi panjang di sini.
 
 ---
 
-## 1. Visi & arsitektur
+## 1. Gambaran nyata sistem (realita di kampus)
 
-Satu platform (**modular monolith**) sebagai pemilik data operasional & satu
-kebenaran proses bisnis kampus, dengan **server WA blast terpisah** sebagai
-gateway notifikasi outbound yang dipanggil EIP.
+Terdapat **aplikasi yang SUDAH BEROPERASI & TETAP BERDIRI SENDIRI** (tidak
+diserap EIP), semuanya **Laravel + MySQL**:
+- Aplikasi **Gaji**
+- Aplikasi **Aset**
+- Aplikasi **Logistik BHP**
 
-- **Modular monolith**: satu backend, satu database, satu frontend. Tiap domain
-  jadi modul dalam codebase yang sama dengan batas jelas (DILARANG microservice
-  sejak awal — tim kecil).
-- **EIP** memegang semua data operasional; modul berbagi master data via foreign
-  key dalam satu DB (tanpa sinkronisasi antar-modul EIP).
-- **Server WA blast**: komponen independen (sudah dirancang pengguna) = sumber
-  pengiriman/status pesan WA yang valid. EIP TIDAK membangun gateway sendiri,
-  hanya memanggilnya.
+**EIP adalah aplikasi BARU** (terpisah dari aplikasi di atas) yang berperan:
+1. Pemegang **master data pegawai** (satu-satunya rujukan) — sistem gaji/aset/
+   logistik **membaca data pegawai dari EIP**.
+2. Rumah bagi modul yang **belum ada**: **kepegawaian**, **perencanaan**,
+   **pengadaan**, dan nantinya **akademik**.
+3. Pemanggil **server WA blast** (layanan terpisah, sudah dirancang) utk
+   notifikasi outbound.
 
-### Stack teknologi
+**Kesimpulan arsitektur:** EIP **bukan** "satu monolith yang menyerap semua
+modul lama". EIP = **aplikasi pusat + sumber master pegawai** yang berintegrasi
+dengan sistem-sistem lama yang tetap berjalan.
+
+```
+┌────────────────────────── EIP (aplikasi baru) ──────────────────────────┐
+│  Master pegawai (satu rujukan)   +   modul baru:                       │
+│  kepegawaian, perencanaan, pengadaan, (akademik nanti)                 │
+└───────────▲────────────▲────────────▲──────────────────────────────────┘
+            │ baca       │ baca       │ baca (API/DB)
+            │ pegawai    │            │
+   ┌────────┴─────┐ ┌────┴─────┐ ┌────┴────────┐   ┌───────────────┐
+   │ Gaji (lama)  │ │ Aset(lama)│ │Logistik(lama)│ │ WA blast       │
+   │ Laravel+MySQL │ │ L+MySQL  │ │  L+MySQL    │   │ (terpisah)     │
+   └──────────────┘ └──────────┘ └─────────────┘   └───────────────┘
+```
+
+---
+
+## 2. Stack teknologi EIP
 
 | Lapisan | Pilihan |
 |---|---|
-| Backend | **Laravel 13** (versi terbaru/mutakhir) + REST API `/api/v1/`, pola Service layer per domain |
-| Database | **PostgreSQL** (satu instance) |
+| Backend | **Laravel 13** (versi terbaru) + REST API `/api/v1/`, pola Service layer per domain |
+| Database | **MySQL** (seragam dgn sistem lama) |
 | Auth | **Google Workspace sbg IdP via OIDC** — SSO lintas sistem |
 | Frontend | **Vue 3 + Vite + TypeScript + Pinia + Vue Router** (SPA terpisah) |
 | UI kit | **Element Plus** |
 | Queue | Laravel Queue + **Redis** |
-| WA Blast | panggil HTTP API server WA blast (pihak ketiga/terpisah); status via callback |
+| WA Blast | panggil HTTP API server WA blast; status via callback |
+
+> Catatan: DB MySQL dipilih utk seragam dengan sistem-sistem lama (Laravel+MySQL)
+> agar integrasi/pertukaran data lebih mudah. (Sebelumnya sempat dirancang
+> PostgreSQL, namun dikoreksi utk konsistensi.)
 
 ---
 
-## 2. Keputusan arsitektur kunci (PASTIKAN ikut)
+## 3. Keputusan arsitektur kunci (PASTIKAN ikut)
 
-1. **Modular monolith**, bukan microservice.
-2. **Tanpa Filament** — kendali penuh UI (workflow rumit di beberapa tempat).
-3. **Master data pegawai dimiliki EIP** (Pola A/C pragmatis). Sistem eksternal
-   (SIMPEG/akademik lama) akses terbatas & tidak andal → BUKAN sumber live.
-   NIP/NIK/ID_SIMPEG disimpan sbg kolom referensi utk matching.
-4. **Satu jalur tulis** data pegawai (hanya modul kepegawaian); modul lain baca.
-5. **Master data** (`pegawai`, `unit_kerja` pohon, `jabatan`, `organisasi`)
-   dirujuk lintas modul, tidak diduplikasi.
-6. **SSO**: Google Workspace IdP (OIDC), tidak bangun SSO/password sendiri.
-7. **Mode akses**: login terbuka utk semua akun domain kampus; **role manual per
-   akun** menentukan modul (RBAC dikelola EIP).
-8. **Workflow = State Machine terpusat di backend** (daftar status + transisi sah
-   per modul); approval berjenjang mengikuti hierarki `unit_kerja`.
+1. **EIP = aplikasi pusat baru**, TIDAK menyerap sistem gaji/aset/logistik lama
+   (tetap berdiri sendiri).
+2. **Master data pegawai dimiliki EIP** — sistem-sistem lain baca dari EIP.
+   Arah referensi: sistem lama → baca pegawai dari EIP.
+3. **Satu jalur tulis** data pegawai (hanya modul kepegawaian EIP); yang lain
+   baca.
+4. **Modular monolith DALAM lingkup EIP** (utk modul-modul barunya): satu
+   backend, satu DB, satu frontend; tiap domain jadi modul dgn batas jelas.
+   DILARANG microservice di dalam EIP (tim kecil).
+5. **Tanpa Filament** — kendali penuh UI (workflow rumit di beberapa tempat).
+6. Identitas resmi ASN (**NIP, NIK, ID_SIMPEG**) disimpan sbg kolom referensi
+   utk matching ke sistem SIMPEG (akses terbatas, bukan sumber live).
+7. **SSO**: Google Workspace IdP (OIDC); login terbuka utk akun domain kampus;
+   **role manual per akun** (RBAC dikelola EIP).
+8. **Workflow = State Machine terpusat di backend**; approval mengikuti hierarki
+   `unit_kerja`.
 
 ---
 
-## 3. Master data inti
+## 4. Master data inti (di EIP)
 
 `organisasi` → `unit_kerja` (pohon) ↔ `jabatan` dihubungkan `pegawai` via pivot
-`penempatan`. Detail tabel lengkap: `docs/01-skemadb-inti.md`.
+`penempatan`. Detail tabel: `docs/01-skemadb-inti.md`.
 
-Prioritas pembangunan master:
-1. `unit_kerja` + `pegawai` (paling kritis, dirujuk semua modul) — desain bersama,
-   perhatian tertinggi.
-2. `jabatan`, `organisasi`.
-3. Master khusus modul (barang/vendor/dll) dibuat saat modul terkait mulai.
+Prioritas: `unit_kerja` + `pegawai` (paling kritis) → `jabatan`, `organisasi` →
+master khusus modul saat modul tsb mulai.
 
 ---
 
-## 4. Struktur dokumentasi
+## 5. Struktur dokumentasi
 
 | File | Isi |
 |---|---|
-| `docs/01-skemadb-inti.md` | Desain skema DB inti (master data, kolom, relasi) |
-| `docs/02-rancangan-integrasi.md` | Blueprint integrasi EIP + WA blast, alur notifikasi & approval, fase |
+| `docs/01-skemadb-inti.md` | Desain skema DB inti (master data EIP) |
+| `docs/02-rancangan-integrasi.md` | Blueprint integrasi EIP + sistem lama + WA blast |
 | `docs/03-autentikasi-sso.md` | Keputusan login/SSO Google OIDC, mode akses, RBAC |
 | `PROGRESS.md` | Checklist & log progres per sesi |
 
 ---
 
-## 5. Konvensi proyek
+## 6. Konvensi proyek
 
 - Bahasa kode: **Inggris**; komentar & dokumen: **Indonesia**.
 - Penamaan DB `snake_case`, tabel **jamak**, model **singular**.
 - API **versioned** `/api/v1/`.
-- Timeline (`created_at`/`updated_at`) + soft delete (`deleted_at`) utk audit.
-- Laravel: Controller tipis → Service (logika bisnis/workflow) → Model/Repository.
-  DILARANG controller gemuk.
+- Timeline + soft delete utk audit.
+- Laravel: Controller tipis → Service → Model/Repository. DILARANG controller
+  gemuk.
 - Auth: OIDC Google (email = kunci relasi ke pegawai); Sanctum utk
-  service-to-service.
+  service-to-service (EIP ↔ sistem lama ↔ WA blast).
 
 ---
 
-## 6. Konteks organisasi (penting utk desain)
+## 7. Konteks organisasi
 
-- Institusi: **kampus/perguruan tinggi**. Tim pembangun kecil (1–2 orang).
-- Membangun **in-house**.
-- Ada Google Workspace (email kampus) — dipakai sbg SSO.
-- Identitas resmi ASN yg wajib dipegang: **NIP, NIK, ID_SIMPEG**.
-- Ada server WA blast tersendiri yg sudah dirancang → dipakai sbg gateway.
-
----
-
-## 7. Urutan implementasi (fase)
-
-1. **Fase 0 — Fondasi:** master (`unit_kerja` → `pegawai` → `jabatan`,
-   `organisasi`), auth OIDC, kerangka modul.
-2. **Fase 1 — Kepegawaian:** kelola pegawai + penempatan.
-3. **Fase 2 — Gaji:** baca pegawai; proses; notifikasi saat terbit.
-4. **Fase 3 — Aset + Logistik BHP:** PIC & pemakaian berbasis pegawai/unit.
-5. **Fase 4 — Perencanaan & Pengadaan:** pengajuan + approval lintas unit.
-6. **Fase 5 — WA blast:** sambungkan sbg notifikasi lintas modul.
-7. **Fase 6 — Akademik (nanti):** sambung ke pola master & approval sama.
+- Institusi: **kampus/perguruan tinggi**. Tim kecil (1–2 orang), in-house.
+- Sistem lama: **gaji, aset, logistik** = Laravel + MySQL, beroperasi & tetap
+  dipakai.
+- Ada **Google Workspace** (SSO). Identitas resmi ASN: **NIP, NIK, ID_SIMPEG**.
+- Ada **server WA blast** terpisah yg sudah dirancang.
 
 ---
 
-## 8. Status
+## 8. Urutan implementasi (fase)
+
+1. **Fase 0 — Fondasi EIP:** master (`unit_kerja` → `pegawai` → `jabatan`,
+   `organisasi`), auth OIDC, kerangka modular.
+2. **Fase 1 — Kepegawaian:** kelola pegawai + penempatan (sumber master).
+3. **Fase 2 — Integrasi data:** buka API master pegawai utk dibaca sistem gaji/
+   aset/logistik; sambungkan WA blast sbg notifikasi.
+4. **Fase 3 — Perencanaan:** modul baru.
+5. **Fase 4 — Pengadaan:** pengajuan + approval lintas unit.
+6. **Fase 5 — Akademik (nanti):** sambung ke pola master & approval sama.
+
+---
+
+## 9. Status
 
 Lihat `PROGRESS.md` utk progres detail & riwayat sesi.

@@ -1,33 +1,35 @@
 # EIP — Desain Skema Database Inti
 
 > Dokumen fondasi data master Enterprise Integration Platform (EIP).
-> Tabel di sini adalah **sumber kebenaran** yang dirujuk semua modul lain
-> (gaji, aset, pengadaan, logistik BHP, WA blast, akademik).
+> Tabel di sini adalah **sumber kebenaran** yang dirujuk modul-modul EIP dan
+> sistem-sistem lama (gaji, aset, logistik) yang membaca data pegawai dari EIP.
 
-Status: **Draft v0.2** — perlu review sebelum implementasi.
+Status: **Draft v0.3** — dikoreksi: DB EIP = MySQL; EIP sumber master utk sistem lama.
 
 ## Keputusan master pegawai
 
-- **Master data pegawai dimiliki oleh EIP sendiri** (Pola A/C pragmatis).
+- **Master data pegawai dimiliki oleh EIP sendiri**.
   Sistem eksternal (SIMPEG/akademik lama) aksesnya terbatas dan master datanya
   tidak andal, sehingga tidak dijadikan sumber live.
 - Identitas resmi ASN (**NIP, NIK, ID_SIMPEG**) disimpan sebagai kolom
   referensi pada tabel `pegawai`, diisi saat input/sinkronisasi berkala, untuk
   keperluan resmi & pencocokan (`matching`) ke sistem SIMPEG bila akses terbuka.
-- Semua modul EIP memakai data pegawai yang dikelola EIP (satu jalur tulis:
-  hanya modul kepegawaian).
+- Modul EIP memakai data pegawai yang dikelola EIP (satu jalur tulis: hanya modul
+  kepegawaian). **Sistem lama (gaji/aset/logistik) membaca master pegawai dari
+  EIP** (via API, atau salinan lokal + sinkronisasi berkala).
 
 ---
 
 ## 1. Prinsip desain
 
-- **Satu database** (PostgreSQL), diorganisasi per domain. Tidak dibuat tabel
-  terpisah antar-modul yang sama maknanya (mis. jangan dua tabel `pegawai`).
+- **Satu database EIP: MySQL** (seragam dengan sistem lama yang juga Laravel +
+  MySQL), diorganisasi per domain modul. Tidak dibuat tabel terpisah antar-modul
+  yang sama maknanya (mis. jangan dua tabel `pegawai`).
 - **Master data** (`pegawai`, `unit_kerja`, `jabatan`, `organisasi`) dikelola
   oleh modul pemilik dan **direferensikan** oleh modul lain melalui
   `foreign key` (bukan diduplikasi).
-- Identitas global memakai **BIGINT auto-increment** atau **ULID**.
-  Rekomendasi: `ULID` (pilihan) agar idempotent & mudah digabung lintas sistem.
+- Identitas global memakai **BIGINT auto-increment** (default MySQL) atau **ULID**
+  bila perlu idempotent lintas sistem.
 - Semua tabel membawa **timestamps** dan, bila perlu, **soft delete**
   (`deleted_at`) untuk audit.
 - Konvensi penamaan: `snake_case`, jamak untuk tabel, singular untuk model.
@@ -148,30 +150,40 @@ Seorang pegawai bisa punya **riwayat posisi**; posisi aktif = status aktif.
 
 ---
 
-## 4. Pola referensi antar-modul (agar integrasi rapi)
+## 4. Pola referensi (modul EIP & sistem lama)
 
-Modul lain **tidak boleh** membuat tabel `pegawai` sendiri. Contoh pola:
+Modul EIP lain **tidak boleh** membuat tabel `pegawai` sendiri. Untuk modul EIP
+baru (perencanaan, pengadaan, akademik), referensi langsung via FK dalam satu DB:
 
 | Modul | Relasi ke data master |
 |---|---|
-| Gaji | `gaji_header.pegawai_id` → pegawai; referensi `unit_kerja_id` |
-| Aset | `aset.penanggung_jawab_id` → pegawai; `aset.unit_kerja_id` → unit_kerja |
+| Perencanaan | `rencana.pemohon_id` → pegawai; `rencana.unit_kerja_id` → unit_kerja |
 | Pengadaan | `pengajuan.pemohon_id` → pegawai; `pengajuan.unit_kerja_id` → unit_kerja |
-| Logistik BHP | `pemakaian.bhp` + `pemakai.pegawai_id` |
-| WA Blast | tabel kontak/penerima bisa **membaca** dari pegawai, atau salinan untuk arsip kirim |
-| Akademik (nanti) | `dosen` dipetakan dari pegawai (bukan tabel duplikat); `prodi` = unit_kerja |
+| Akademik (nanti) | `dosen` dipetakan dari pegawai; `prodi` = unit_kerja |
+| WA Blast | kontak/penerima membaca dari pegawai, atau salinan utk arsip kirim |
+
+**Sistem lama (gaji, aset, logistik)** berada di aplikasi/DB terpisah. Mereka
+**membaca master pegawai dari EIP** — bukan saling menulis. Relasinya secara
+logika (melalui API EIP / sinkronisasi), bukan FK antar-DB:
+
+| Sistem lama | Butuh dari EIP | Cara |
+|---|---|---|
+| Gaji | pegawai, unit_kerja | API EIP `/api/v1/pegawai`, read / salinan |
+| Aset | pegawai (PIC), unit_kerja | API EIP |
+| Logistik | pegawai (pemakai), unit_kerja | API EIP |
 
 ---
 
 ## 5. Aturan penting untuk tim kecil
 
-1. **Master dulu, modul belakangan.** Pastikan migrasi tabel 3.1–3.5 selesai
-   dan stabil sebelum menulis modul gaji/aset/pengadaan.
-2. **Satu jalur tulis data pegawai.** Hanya modul kepegawaian yang insert/
-   update `pegawai`; modul lain hanya baca. Mencegah konflik data.
-3. **API versioned** (`/api/v1/`) sejak awal.
-4. **Audit trail**: pertimbangkan tabel/package `audit_log` untuk perubahan
-   data sensitif (gaji, status pegawai).
+1. **Master dulu, modul belakangan.** Migrasi tabel master selesai & stabil
+   dulu sebelum modul lain.
+2. **Satu jalur tulis data pegawai.** Hanya modul kepegawaian EIP yang insert/
+   update `pegawai`; modul & sistem lain hanya baca. Mencegah konflik data.
+3. **API versioned** (`/api/v1/`) sejak awal — termasuk API master pegawai utk
+   sistem lama.
+4. **Audit trail**: pertimbangkan tabel/package `audit_log` utk perubahan data
+   sensitif (pegawai, status).
 
 ---
 
