@@ -4,7 +4,10 @@
 > Tabel di sini adalah **sumber kebenaran** yang dirujuk modul-modul EIP dan
 > sistem-sistem lama (gaji, aset, logistik) yang membaca data pegawai dari EIP.
 
-Status: **Draft v0.3** — dikoreksi: DB EIP = MySQL; EIP sumber master utk sistem lama.
+Status: **Draft v0.4** — dikoreksi: arsitektur "aplikasi terpisah per domain"
+(lihat `docs/04`). Tabel di dokumen ini **milik DB EIP Core**. App domain baru
+(kepegawaian, perencanaan, pengadaan, akademik) punya DB sendiri dan mengakses
+master ini **via EIP Core API**, bukan FK lintas-DB.
 
 ## Keputusan master pegawai
 
@@ -22,12 +25,13 @@ Status: **Draft v0.3** — dikoreksi: DB EIP = MySQL; EIP sumber master utk sist
 
 ## 1. Prinsip desain
 
-- **Satu database EIP: MySQL** (seragam dengan sistem lama yang juga Laravel +
-  MySQL), diorganisasi per domain modul. Tidak dibuat tabel terpisah antar-modul
-  yang sama maknanya (mis. jangan dua tabel `pegawai`).
-- **Master data** (`pegawai`, `unit_kerja`, `jabatan`, `organisasi`) dikelola
-  oleh modul pemilik dan **direferensikan** oleh modul lain melalui
-  `foreign key` (bukan diduplikasi).
+- **DB EIP Core: MySQL** (seragam dengan sistem lama yang juga Laravel + MySQL),
+  memuat SELURUH master data. Tiap app domain punya DB MySQL sendiri untuk data
+  non-master miliknya. Tidak ada tabel `pegawai` kedua di app manapun.
+- **Master data** (`pegawai`, `unit_kerja`, `jabatan`, `organisasi`) hidup di
+  DB EIP Core. App domain **membacanya via EIP Core API** (+ cache lokal
+  secukupnya), TIDAK lewat FK lintas-DB. Penulisan `pegawai`/`penempatan` hanya
+  dari app kepegawaian, lewat API.
 - Identitas global memakai **BIGINT auto-increment** (default MySQL) atau **ULID**
   bila perlu idempotent lintas sistem.
 - Semua tabel membawa **timestamps** dan, bila perlu, **soft delete**
@@ -150,21 +154,22 @@ Seorang pegawai bisa punya **riwayat posisi**; posisi aktif = status aktif.
 
 ---
 
-## 4. Pola referensi (modul EIP & sistem lama)
+## 4. Pola referensi (app domain & sistem lama)
 
-Modul EIP lain **tidak boleh** membuat tabel `pegawai` sendiri. Untuk modul EIP
-baru (perencanaan, pengadaan, akademik), referensi langsung via FK dalam satu DB:
+Tidak ada app yang membuat tabel `pegawai` sendiri. Karena tiap domain = app +
+DB terpisah, **semua referensi ke master lewat EIP Core API** (bukan FK lintas-
+DB). App menyimpan hanya `*_id` master + cache atribut secukupnya:
 
-| Modul | Relasi ke data master |
+| App domain | Referensi ke master (via EIP Core API) |
 |---|---|
-| Perencanaan | `rencana.pemohon_id` → pegawai; `rencana.unit_kerja_id` → unit_kerja |
-| Pengadaan | `pengajuan.pemohon_id` → pegawai; `pengajuan.unit_kerja_id` → unit_kerja |
-| Akademik (nanti) | `dosen` dipetakan dari pegawai; `prodi` = unit_kerja |
-| WA Blast | kontak/penerima membaca dari pegawai, atau salinan utk arsip kirim |
+| Perencanaan | `rencana.pemohon_id`, `rencana.unit_kerja_id` (id master, di-resolve via API) |
+| Pengadaan | `pengajuan.pemohon_id`, `pengajuan.unit_kerja_id`; hierarki approval dari `unit_kerja` API |
+| Akademik (nanti) | `dosen` dipetakan dari `pegawai`; `prodi` = `unit_kerja` (via API) |
+| WA Blast | kontak/penerima di-resolve dari `pegawai` API; boleh salin utk arsip kirim |
 
-**Sistem lama (gaji, aset, logistik)** berada di aplikasi/DB terpisah. Mereka
-**membaca master pegawai dari EIP** — bukan saling menulis. Relasinya secara
-logika (melalui API EIP / sinkronisasi), bukan FK antar-DB:
+**Sistem lama (gaji, aset, logistik)** berpola **sama persis**: aplikasi/DB
+terpisah, **membaca master pegawai dari EIP Core** — bukan saling menulis.
+Relasi secara logika (via EIP Core API / sinkronisasi), bukan FK antar-DB:
 
 | Sistem lama | Butuh dari EIP | Cara |
 |---|---|---|
@@ -178,8 +183,9 @@ logika (melalui API EIP / sinkronisasi), bukan FK antar-DB:
 
 1. **Master dulu, modul belakangan.** Migrasi tabel master selesai & stabil
    dulu sebelum modul lain.
-2. **Satu jalur tulis data pegawai.** Hanya modul kepegawaian EIP yang insert/
-   update `pegawai`; modul & sistem lain hanya baca. Mencegah konflik data.
+2. **Satu jalur tulis data pegawai.** Hanya **app kepegawaian** yang insert/
+   update `pegawai`/`penempatan`, lewat EIP Core API (service token). App &
+   sistem lain hanya baca. Bila data beda, EIP Core yang benar.
 3. **API versioned** (`/api/v1/`) sejak awal — termasuk API master pegawai utk
    sistem lama.
 4. **Audit trail**: pertimbangkan tabel/package `audit_log` utk perubahan data

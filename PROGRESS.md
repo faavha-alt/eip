@@ -10,31 +10,52 @@ Dibuat: 2026-09-03
   (satu rujukan)**, rumah modul baru (kepegawaian, perencanaan, pengadaan,
   akademik), pemanggil server WA blast.
 - **Sistem lama membaca data pegawai dari EIP.** Arah: sistem lama → baca EIP.
-- **DB EIP = MySQL** (seragam dgn sistem lama). Modular monolith DALAM EIP.
+- **DB EIP = MySQL** (seragam dgn sistem lama).
+- **Arsitektur (final 2026-09-03): aplikasi terpisah per domain.** EIP Core
+  (master + RBAC + API + portal SSO) + app kepegawaian/perencanaan/pengadaan/
+  akademik masing-masing Laravel 13 + MySQL + SPA sendiri, deploy sendiri.
+  Integrasi lewat EIP Core API + shared library. Detail & analisis:
+  `docs/04-analisis-dan-rencana-eksekusi.md`.
 
 ## Tasks
 
 ### Keputusan desain (selesai)
 - [x] Inisialisasi repo EIP dari template
 - [x] Koreksi gambaran: sistem gaji/aset/logistik sudah ada (Laravel+MySQL) & tetap berdiri; EIP = aplikasi pusat baru
-- [x] Finalisasi stack EIP: Laravel 13 + Vue 3 + **MySQL** + Redis + Element Plus; modular monolith dalam EIP; tanpa Filament
-- [x] Keputusan master pegawai milik EIP + kolom identitas resmi (NIP, NIK, id_simpeg)
+- [x] Finalisasi stack EIP: Laravel 13 + Vue 3 + **MySQL** + Redis + Element Plus; tanpa Filament
+- [x] Keputusan master pegawai milik EIP Core + kolom identitas resmi (NIP, NIK, id_simpeg)
 - [x] Keputusan DB EIP = MySQL (seragam sistem lama)
-- [x] Klarifikasi monolith vs microservice: modul baru EIP = modular monolith; sistem lama (gaji/aset/logistik/WA) = sistem terpisah existing yg diintegrasikan
+- [x] **Arsitektur final: aplikasi terpisah per domain** (EIP Core + app kepegawaian/perencanaan/pengadaan/akademik). Membatalkan rancangan "modular monolith dalam EIP". Keberatan analis tercatat di docs/04.
+- [x] EIP Core = pemilik tunggal DB master; app kepegawaian = penulis tunggal via API; semua lain baca
+- [x] RBAC terpusat di EIP Core; tiap app OIDC client sendiri; shared library composer internal utk klien Core/DTO/auth
+- [x] Analisis sistem existing + pola integrasi (A: sync 1 arah → B: API call) + fase diselaraskan nilai/risiko
 - [x] Dokumen desain skema database inti (docs/01-skemadb-inti.md)
 - [x] Dokumen rancangan integrasi (EIP + sistem lama + WA blast) (docs/02-rancangan-integrasi.md)
 - [x] Keputusan SSO: Google Workspace IdP (OIDC), tidak bangun SSO sendiri (docs/03-autentikasi-sso.md)
 - [x] Mode akses: login terbuka domain kampus; role manual per akun batasi modul
+- [x] Dokumen analisis & rencana eksekusi (docs/04-analisis-dan-rencana-eksekusi.md)
 - [x] Konsolidasi CLAUDE.md sebagai referensi global lengkap
 
-### Belum dikerjakan (jalankan saat eksekusi kode)
-- [ ] Review & finalisasi skema DB inti sesuai kebutuhan nyata kampus
-- [ ] Tulis migrasi Laravel utk tabel master (organisasi, unit_kerja, jabatan, pegawai, penempatan)
-- [ ] Konfigurasi OIDC Google (klien, domain email yang diizinkan)
-- [ ] Rancang skema role awal (RBAC)
-- [ ] Tentukan struktur `unit_kerja` nyata kampus
-- [ ] Konfirmasi mekanisme integrasi tiap sistem lama (gaji/aset/logistik): salinan lokal+sync vs query live, akses API/DB nyata
-- [ ] Sambungkan server WA blast sebagai notifikasi lintas modul
+### Belum dikerjakan — eksekusi kode (mulai besok, "satu-satu")
+
+Langkah berurutan lengkap: **`docs/04-analisis-dan-rencana-eksekusi.md` §6**.
+Ringkas:
+- [ ] L1 — EIP Core: scaffold Laravel 13 + `.env` MySQL/Redis + konvensi folder
+- [ ] L2 — EIP Core: migrasi master (organisasi, unit_kerja tree, jabatan, pegawai, penempatan) + audit_log + seeder
+- [ ] L3 — EIP Core: OIDC Google (batasi domain email) + RBAC (users/roles/permissions) + Sanctum s2s
+- [ ] L4 — EIP Core: API `/api/v1/` (read master + `updated_since`; write pegawai khusus token kepegawaian; roles)
+- [ ] L5 — EIP Core: portal SSO + shared library `eip/client` (HTTP client, DTO, middleware)
+- [ ] L6 — App Kepegawaian: scaffold + SPA + CRUD pegawai/penempatan (tulis via Core API) + direktori
+- [ ] L7 — Integrasi pilot 1 sistem lama (mis. logistik): job sync → `pegawai_ref` (pola A)
+- [ ] L8 — Sambung WA blast (konfirmasi kontrak API dulu)
+- [ ] L9+ — Pengadaan → Perencanaan → sisa sistem lama → Akademik
+
+### Blocker sebelum/saat eksekusi (docs/04 §7)
+- [ ] Ruang lingkup: 1 fakultas atau 1 universitas? Jumlah pegawai & unit
+- [ ] Sistem lama: satu server MySQL? DB boleh dibaca? Kode bisa dimodifikasi? Siapa maintain?
+- [ ] Cara sistem lama identify pegawai sekarang (kolom kunci) utk matching
+- [ ] WA blast: sudah jalan atau masih desain? Kontrak API final?
+- [ ] Struktur `unit_kerja` nyata + apakah hierarki approval = hierarki unit persis
 
 ## Log sesi
 
@@ -51,8 +72,25 @@ Dibuat: 2026-09-03
 - Rancangan integrasi EIP + sistem lama + server WA blast.
 - SSO: Google Workspace IdP via OIDC, SSO lintas sistem, tidak bangun sendiri.
 - Mode akses: login terbuka utk akun domain kampus; role manual per akun (RBAC).
-- Klarifikasi: banyak aplikasi terpisah menyerupai microservice, tapi bedakan
-  — modul baru EIP = modular monolith (jangan pecah jadi aplikasi); sistem lama
-  (gaji/aset/logistik/WA) = existing yg diintegrasikan, bukan microservice yg
-  kita rancang.
+- Klarifikasi awal: modul baru EIP direncanakan modular monolith; sistem lama
+  = existing yg diintegrasikan.
 - Konsolidasi seluruh keputusan ke CLAUDE.md (referensi global) utk eksekusi kode.
+
+### 2026-09-03 (sesi lanjutan — arsitektur & rencana eksekusi)
+- Pertanyaan pengguna: yakin tidak ada microservice? → dibahas nuansanya
+  (banyak app fisik terpisah menyerupai terdistribusi).
+- Pengguna mengarahkan: kepegawaian/perencanaan/pengadaan/akademik nantinya
+  berdiri sendiri-sendiri.
+- Analis memberi analisis mendalam (skala fakultas, tim 1–2 orang, sistem
+  existing) + rekomendasi **modular monolith siap-pecah**.
+- **Keputusan pemilik proyek: tetap "aplikasi terpisah per domain"** (final).
+  Keberatan analis dicatat di `docs/04` §3.2.
+- Ditetapkan: EIP Core pemilik tunggal DB master; app kepegawaian penulis
+  tunggal via API; RBAC terpusat di Core; tiap app OIDC client sendiri;
+  shared library composer internal; alur lintas-app via event/webhook.
+- Konfirmasi: **untuk data pegawai, EIP = sumber paling valid (SSOT)**;
+  NIP/NIK/ID_SIMPEG sumber resmi tetap SIMPEG/Dukcapil (EIP hanya matching).
+- Fase disusun ulang selaras nilai/risiko: integrasi sistem lama dinaikkan
+  ke Fase 2 (pilot 1 sistem).
+- Dibuat `docs/04-analisis-dan-rencana-eksekusi.md`; CLAUDE.md §1/§3/§4/§6/§8
+  disesuaikan. **Belum ada kode — mulai eksekusi "satu-satu" sesi berikutnya.**

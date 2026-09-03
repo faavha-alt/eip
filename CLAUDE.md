@@ -2,7 +2,8 @@
 
 Platform pusat baru untuk kampus yang **menyatukan data & alur lintas sistem**.
 EIP menjadi **master data pegawai (satu rujukan)** yang dibaca sistem-sistem
-berjalan, dan menjadi rumah bagi modul-modul yang belum ada.
+berjalan, dan menjadi payung bagi **aplikasi-aplikasi domain baru** yang berdiri
+sendiri (kepegawaian, perencanaan, pengadaan, akademik).
 
 > File ini adalah **referensi global** (dibaca Claude Code dari root proyek).
 > Detail teknis lengkap ada di folder `docs/`. Ringkas, akurat, menunjuk ke
@@ -18,50 +19,59 @@ diserap EIP), semuanya **Laravel + MySQL**:
 - Aplikasi **Aset**
 - Aplikasi **Logistik BHP**
 
-**EIP adalah aplikasi BARU** (terpisah dari aplikasi di atas) yang berperan:
-1. Pemegang **master data pegawai** (satu-satunya rujukan) — sistem gaji/aset/
-   logistik **membaca data pegawai dari EIP**.
-2. Rumah bagi modul yang **belum ada**: **kepegawaian**, **perencanaan**,
-   **pengadaan**, dan nantinya **akademik**.
-3. Pemanggil **server WA blast** (layanan terpisah, sudah dirancang) utk
-   notifikasi outbound.
+**EIP adalah platform BARU** (terpisah dari aplikasi di atas) yang terdiri dari:
 
-**Kesimpulan arsitektur:** EIP **bukan** "satu monolith yang menyerap semua
-modul lama". EIP = **aplikasi pusat + sumber master pegawai** yang berintegrasi
-dengan sistem-sistem lama yang tetap berjalan.
+- **EIP Core** — aplikasi pusat: pemegang **master data pegawai** (satu-satunya
+  rujukan & satu-satunya pemilik DB master), **RBAC terpusat**, **API `/api/v1/`**
+  utk semua konsumen, dan **portal/launcher SSO**.
+- **Aplikasi domain** — tiap domain baru dibangun sbg **aplikasi yang berdiri
+  sendiri** (Laravel 13 + MySQL sendiri + SPA Vue sendiri, deploy sendiri):
+  **kepegawaian**, **perencanaan**, **pengadaan**, dan nantinya **akademik**.
+  Semuanya membaca master dari EIP Core API.
+- **Server WA blast** (layanan terpisah, sudah dirancang) dipanggil aplikasi
+  yang butuh notifikasi outbound.
 
-### Klarifikasi penting: monolith vs microservice (jangan salah tafsir)
+**Kesimpulan arsitektur:** EIP **bukan** monolith. EIP = **EIP Core (sumber
+master + RBAC + API)** ditambah **kumpulan aplikasi domain yang berdiri sendiri**,
+diintegrasikan lewat API. Sistem lama (gaji/aset/logistik) menjadi konsumen API
+EIP Core dengan pola yang **sama persis** dengan aplikasi domain baru.
 
-Secara fisik, banyak aplikasi terpisah (EIP + gaji + aset + logistik + WA blast)
-menyerupai arsitektur microservice/terdistribusi. Bedakan dua hal ini:
+### Klarifikasi penting: keputusan "aplikasi terpisah per domain"
 
-1. **Keputusan desain untuk modul yang KITA bangun** (di dalam EIP):
-   gunakan **modular monolith** — kepegawaian, perencanaan, pengadaan dibuat
-   sbg modul dalam SATU aplikasi EIP, BUKAN aplikasi terpisah. Alasan: tim
-   kecil, hindari beban mengelola banyak service.
-2. **Sistem lama yang SUDAH terpisah** (gaji, aset, logistik, WA blast):
-   itu BUKAN pilihan desain kita, melainkan kenyataan yang sudah ada. Kita
-   tidak membangunnya sbg microservice; kita **mengintegrasikan** EIP dgn
-   mereka.
+Keputusan final (2026-09-03): **tiap domain baru = aplikasi terpisah sejak
+awal**, BUKAN modul dalam satu monolith. Rasional: batas domain dipaksakan
+secara fisik (proses + DB terpisah), rilis/deploy independen per domain,
+kesiapan diserahkan ke tim lain kelak. Rancangan "modular monolith dalam EIP"
+sebelumnya — **dibatalkan**.
 
-Kondisi nyata lebih tepat disebut **sistem terintegrasi / integration-centric**,
-bukan microservice murni (sistem lama tidak berbagi platform gateway/discovery/
-container, masing-masing berdiri sendiri). Ringkas:
-
-> **Yang kita bangun** (modul EIP) = modular monolith.
-> **Yang sudah ada** (gaji/aset/logistik/WA) = sistem terpisah yang kita hubungkan.
+Konsekuensi yang diterima sadar (tim 1–2 orang): tiap aplikasi punya pipeline
+CI/CD, monitoring, konfigurasi OIDC, backup, dan DB sendiri → beban operasional
+beberapa kali lipat; alur lintas-app (mis. approval) jadi komunikasi antar-
+proses. Mitigasi: **shared library (composer package internal)** utk klien
+EIP Core, DTO, dan middleware auth dipakai semua app; alur lintas-app via
+event/webhook, bukan transaksi terdistribusi. Analisis lengkap + keberatan
+yang tercatat: `docs/04-analisis-dan-rencana-eksekusi.md`.
 
 ```
-┌────────────────────────── EIP (aplikasi baru) ──────────────────────────┐
-│  Master pegawai (satu rujukan)   +   modul baru:                       │
-│  kepegawaian, perencanaan, pengadaan, (akademik nanti)                 │
-└───────────▲────────────▲────────────▲──────────────────────────────────┘
-            │ baca       │ baca       │ baca (API/DB)
-            │ pegawai    │            │
-   ┌────────┴─────┐ ┌────┴─────┐ ┌────┴────────┐   ┌───────────────┐
-   │ Gaji (lama)  │ │ Aset(lama)│ │Logistik(lama)│ │ WA blast       │
-   │ Laravel+MySQL │ │ L+MySQL  │ │  L+MySQL    │   │ (terpisah)     │
-   └──────────────┘ └──────────┘ └─────────────┘   └───────────────┘
+                    ┌───────────────────────────────────┐
+                    │            EIP Core               │
+                    │  master pegawai/unit/jabatan/org   │
+                    │  RBAC terpusat  ·  portal SSO      │
+                    │  API /api/v1/  (satu-satunya       │
+                    │  pemilik DB master)               │
+                    └───┬─────┬─────┬─────┬─────┬────────┘
+             baca/tulis │     │baca │baca │baca │ baca (API)
+             master (API)│    │     │     │     │
+   ┌──────────────┐  ┌───┴───┐ ┌──┴──┐ ┌─┴────┐ │  ┌──────────┐┌──────────┐┌───────────┐
+   │ Kepegawaian  │  │Perenc.│ │Peng-│ │Akade-│ │  │  Gaji    ││  Aset    ││ Logistik  │
+   │ (app sendiri)│  │(app)  │ │adaan│ │mik   │ │  │ (lama)   ││ (lama)   ││  (lama)   │
+   │ satu-satunya │  └───────┘ │(app)│ │nanti │ │  └──────────┘└──────────┘└───────────┘
+   │ penulis mstr │            └─────┘ └──────┘ │
+   └──────────────┘                             │
+                                        ┌───────┴────────┐
+                                        │  WA blast       │
+                                        │  (terpisah)     │
+                                        └────────────────┘
 ```
 
 ---
@@ -73,7 +83,7 @@ container, masing-masing berdiri sendiri). Ringkas:
 | Backend | **Laravel 13** (versi terbaru) + REST API `/api/v1/`, pola Service layer per domain |
 | Database | **MySQL** (seragam dgn sistem lama) |
 | Auth | **Google Workspace sbg IdP via OIDC** — SSO lintas sistem |
-| Frontend | **Vue 3 + Vite + TypeScript + Pinia + Vue Router** (SPA terpisah) |
+| Frontend | **Vue 3 + Vite + TypeScript + Pinia + Vue Router** — **satu SPA per app** + portal/launcher SSO di EIP Core |
 | UI kit | **Element Plus** |
 | Queue | Laravel Queue + **Redis** |
 | WA Blast | panggil HTTP API server WA blast; status via callback |
@@ -86,32 +96,36 @@ container, masing-masing berdiri sendiri). Ringkas:
 
 ## 3. Keputusan arsitektur kunci (PASTIKAN ikut)
 
-1. **EIP = aplikasi pusat baru**, TIDAK menyerap sistem gaji/aset/logistik lama
-   (tetap berdiri sendiri).
-2. **Master data pegawai dimiliki EIP** — sistem-sistem lain baca dari EIP.
-   Arah referensi: sistem lama → baca pegawai dari EIP.
-3. **Satu jalur tulis** data pegawai (hanya modul kepegawaian EIP); yang lain
-   baca.
-4. **Modular monolith DALAM lingkup EIP** (utk modul-modul barunya): satu
-   backend, satu DB, satu frontend; tiap domain jadi modul dgn batas jelas.
-   JANGAN pecah modul EIP jadi aplikasi terpisah (tim kecil).
-   Catatan: sistem lama (gaji/aset/logistik) yg sudah terpisah BUKAN bagian
-   dari "modul EIP" — mereka aplikasi existing yang tetap diintegrasikan
-   (lihat bagian "Klarifikasi penting" di atas).
+1. **EIP = platform baru** = **EIP Core** + **aplikasi domain terpisah**. TIDAK
+   menyerap sistem gaji/aset/logistik lama (tetap berdiri sendiri).
+2. **Master data pegawai dimiliki EIP Core** (satu-satunya pemilik DB master).
+   Semua konsumen — app domain baru + sistem lama — **baca dari EIP Core API**.
+3. **Satu jalur tulis** data pegawai: **hanya app kepegawaian**, menulis ke
+   EIP Core lewat API (service token). App & sistem lain hanya baca.
+4. **Aplikasi terpisah per domain** (keputusan 2026-09-03, final): EIP Core,
+   kepegawaian, perencanaan, pengadaan, (akademik nanti) — masing-masing
+   **Laravel 13 + MySQL + SPA sendiri, deploy sendiri**. Integrasi HANYA lewat
+   EIP Core API (tanpa FK lintas-DB). **Shared library** (composer package
+   internal) utk klien EIP Core, DTO, middleware auth — dipakai semua app.
+   Konsekuensi ops (CI/CD, monitoring, OIDC client, backup per app) diterima
+   sadar; detail & analisis di `docs/04-analisis-dan-rencana-eksekusi.md`.
 5. **Tanpa Filament** — kendali penuh UI (workflow rumit di beberapa tempat).
 6. Identitas resmi ASN (**NIP, NIK, ID_SIMPEG**) disimpan sbg kolom referensi
-   utk matching ke sistem SIMPEG (akses terbatas, bukan sumber live).
-7. **SSO**: Google Workspace IdP (OIDC); login terbuka utk akun domain kampus;
-   **role manual per akun** (RBAC dikelola EIP).
-8. **Workflow = State Machine terpusat di backend**; approval mengikuti hierarki
-   `unit_kerja`.
+   di EIP Core utk matching ke SIMPEG (sumber resmi = SIMPEG/Dukcapil, EIP
+   hanya menyalin & mencocokkan — bukan penerbit, bukan sumber live).
+7. **SSO**: tiap app = **OIDC client sendiri** ke Google Workspace; login
+   terbuka utk akun domain kampus. **RBAC terpusat di EIP Core**; app baca
+   peran user via API / klaim token. Role manual per akun.
+8. **Workflow = State Machine di backend** app pemilik proses; approval
+   mengikuti hierarki `unit_kerja` (dibaca dari EIP Core).
 
 ---
 
-## 4. Master data inti (di EIP)
+## 4. Master data inti (di EIP Core)
 
 `organisasi` → `unit_kerja` (pohon) ↔ `jabatan` dihubungkan `pegawai` via pivot
-`penempatan`. Detail tabel: `docs/01-skemadb-inti.md`.
+`penempatan`. Semua tinggal di DB EIP Core; app lain akses via API.
+Detail tabel: `docs/01-skemadb-inti.md`.
 
 Prioritas: `unit_kerja` + `pegawai` (paling kritis) → `jabatan`, `organisasi` →
 master khusus modul saat modul tsb mulai.
@@ -125,6 +139,7 @@ master khusus modul saat modul tsb mulai.
 | `docs/01-skemadb-inti.md` | Desain skema DB inti (master data EIP) |
 | `docs/02-rancangan-integrasi.md` | Blueprint integrasi EIP + sistem lama + WA blast |
 | `docs/03-autentikasi-sso.md` | Keputusan login/SSO Google OIDC, mode akses, RBAC |
+| `docs/04-analisis-dan-rencana-eksekusi.md` | Analisis sistem existing, keputusan "aplikasi terpisah per domain", pola integrasi, blocker, langkah eksekusi |
 | `PROGRESS.md` | Checklist & log progres per sesi |
 
 ---
@@ -137,8 +152,11 @@ master khusus modul saat modul tsb mulai.
 - Timeline + soft delete utk audit.
 - Laravel: Controller tipis → Service → Model/Repository. DILARANG controller
   gemuk.
-- Auth: OIDC Google (email = kunci relasi ke pegawai); Sanctum utk
-  service-to-service (EIP ↔ sistem lama ↔ WA blast).
+- Auth: tiap app OIDC client Google sendiri (email = kunci relasi ke pegawai);
+  Sanctum / signed JWT utk service-to-service (app ↔ EIP Core ↔ sistem lama ↔
+  WA blast).
+- Reuse: **shared library composer internal** (klien EIP Core, DTO pegawai/unit,
+  middleware auth) wajib dipakai tiap app — jangan duplikasi kode integrasi.
 
 ---
 
@@ -154,14 +172,21 @@ master khusus modul saat modul tsb mulai.
 
 ## 8. Urutan implementasi (fase)
 
-1. **Fase 0 — Fondasi EIP:** master (`unit_kerja` → `pegawai` → `jabatan`,
-   `organisasi`), auth OIDC, kerangka modular.
-2. **Fase 1 — Kepegawaian:** kelola pegawai + penempatan (sumber master).
-3. **Fase 2 — Integrasi data:** buka API master pegawai utk dibaca sistem gaji/
-   aset/logistik; sambungkan WA blast sbg notifikasi.
-4. **Fase 3 — Perencanaan:** modul baru.
-5. **Fase 4 — Pengadaan:** pengajuan + approval lintas unit.
-6. **Fase 5 — Akademik (nanti):** sambung ke pola master & approval sama.
+Urutan diselaraskan ke **nilai & risiko** (bukan sekadar urutan modul).
+Rincian langkah teknis per fase: `docs/04-analisis-dan-rencana-eksekusi.md`.
+
+1. **Fase 0 — EIP Core:** master (`unit_kerja` → `pegawai` → `jabatan`,
+   `organisasi`), RBAC, OIDC, `audit_log`, API `/api/v1/`, portal SSO,
+   **shared library** klien Core.
+2. **Fase 1 — App Kepegawaian:** CRUD pegawai + penempatan + direktori;
+   penulis tunggal master (via EIP Core API).
+3. **Fase 2 — Integrasi pilot:** sync master ke **1 sistem lama** (mis.
+   logistik) sbg pembuktian pola; sambungkan **WA blast**. (Naik dari fase
+   akhir → di sini, karena risiko integrasi terbesar.)
+4. **Fase 3 — App Pengadaan:** pengajuan + approval berjenjang + notifikasi WA.
+5. **Fase 4 — App Perencanaan:** modul baru; kaitkan output ke pengadaan.
+6. **Fase 5 — Sisa sistem lama** (gaji, aset) baca dari EIP Core.
+7. **Fase 6 — App Akademik (nanti):** pola master & approval sama.
 
 ---
 

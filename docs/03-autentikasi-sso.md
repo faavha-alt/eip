@@ -3,7 +3,10 @@
 > Keputusan identitas/login untuk Enterprise Integration Platform dan seluruh
 > sistem terkait (EIP, server WA blast, akademik, dll).
 
-Status: **Draft v0.1**
+Status: **Draft v0.2** — arsitektur "aplikasi terpisah per domain" (`docs/04`):
+**tiap app** (EIP Core, kepegawaian, perencanaan, pengadaan, akademik) adalah
+**OIDC client Google sendiri**; **RBAC terpusat di EIP Core** — app lain
+membaca peran user via EIP Core API / klaim token.
 
 ---
 
@@ -61,8 +64,10 @@ Kunci relasi: **email Google Workspace = kolom `email` pada `pegawai`**.
 pegawai.email (unique)  ←→  Google account kampus
 ```
 
-- Saat login, EIP mencari `pegawai` by email.
-- Jika email dikenali → lanjut ke otorisasi peran.
+- Saat login, app memanggil **EIP Core** utk resolve email → `pegawai` + peran
+  (endpoint mis. `GET /api/v1/me?email=` atau klaim di token). Pencocokan
+  `pegawai` by email hanya terjadi di EIP Core.
+- Jika email dikenali → app lanjut ke otorisasi peran (dari EIP Core).
 - Jika login Google sukses tapi email belum terdaftar sebagai pegawai →
   tampilkan halaman "akun belum terdaftar" atau alur undangan admin
   (mencegah sembarang masuk).
@@ -71,13 +76,14 @@ pegawai.email (unique)  ←→  Google account kampus
 
 ## 4. Peran & otorisasi (RBAC)
 
-Login Google menentukan **siapa**; **peran** tetap dikelola di EIP (RBAC):
+Login Google menentukan **siapa**; **peran** tetap dikelola terpusat di
+**EIP Core** (RBAC):
 
 | Konsep | Dimana |
 |---|---|
-| Identitas (siapa, via Google OIDC) | Google |
-| Peran & izin (modul apa yg boleh diakses) | EIP (tabel role/permission) |
-| Data pegawai (unit, jabatan) | EIP |
+| Identitas (siapa, via Google OIDC) | Google — tiap app client sendiri |
+| Peran & izin (app/modul apa yg boleh diakses) | **EIP Core** (tabel role/permission); app lain baca via API / klaim token |
+| Data pegawai (unit, jabatan) | EIP Core |
 
 - Peran default per pegawai (mis. pegawai biasa). Admin menetapkan peran
   khusus (mis. admin gaji, approver pengadaan).
