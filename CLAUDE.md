@@ -30,6 +30,27 @@ diserap EIP), semuanya **Laravel + MySQL**:
 modul lama". EIP = **aplikasi pusat + sumber master pegawai** yang berintegrasi
 dengan sistem-sistem lama yang tetap berjalan.
 
+### Klarifikasi penting: monolith vs microservice (jangan salah tafsir)
+
+Secara fisik, banyak aplikasi terpisah (EIP + gaji + aset + logistik + WA blast)
+menyerupai arsitektur microservice/terdistribusi. Bedakan dua hal ini:
+
+1. **Keputusan desain untuk modul yang KITA bangun** (di dalam EIP):
+   gunakan **modular monolith** — kepegawaian, perencanaan, pengadaan dibuat
+   sbg modul dalam SATU aplikasi EIP, BUKAN aplikasi terpisah. Alasan: tim
+   kecil, hindari beban mengelola banyak service.
+2. **Sistem lama yang SUDAH terpisah** (gaji, aset, logistik, WA blast):
+   itu BUKAN pilihan desain kita, melainkan kenyataan yang sudah ada. Kita
+   tidak membangunnya sbg microservice; kita **mengintegrasikan** EIP dgn
+   mereka.
+
+Kondisi nyata lebih tepat disebut **sistem terintegrasi / integration-centric**,
+bukan microservice murni (sistem lama tidak berbagi platform gateway/discovery/
+container, masing-masing berdiri sendiri). Ringkas:
+
+> **Yang kita bangun** (modul EIP) = modular monolith.
+> **Yang sudah ada** (gaji/aset/logistik/WA) = sistem terpisah yang kita hubungkan.
+
 ```
 ┌────────────────────────── EIP (aplikasi baru) ──────────────────────────┐
 │  Master pegawai (satu rujukan)   +   modul baru:                       │
@@ -73,7 +94,10 @@ dengan sistem-sistem lama yang tetap berjalan.
    baca.
 4. **Modular monolith DALAM lingkup EIP** (utk modul-modul barunya): satu
    backend, satu DB, satu frontend; tiap domain jadi modul dgn batas jelas.
-   DILARANG microservice di dalam EIP (tim kecil).
+   JANGAN pecah modul EIP jadi aplikasi terpisah (tim kecil).
+   Catatan: sistem lama (gaji/aset/logistik) yg sudah terpisah BUKAN bagian
+   dari "modul EIP" — mereka aplikasi existing yang tetap diintegrasikan
+   (lihat bagian "Klarifikasi penting" di atas).
 5. **Tanpa Filament** — kendali penuh UI (workflow rumit di beberapa tempat).
 6. Identitas resmi ASN (**NIP, NIK, ID_SIMPEG**) disimpan sbg kolom referensi
    utk matching ke sistem SIMPEG (akses terbatas, bukan sumber live).

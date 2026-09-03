@@ -20,6 +20,7 @@ Dibuat: 2026-09-03
 - [x] Finalisasi stack EIP: Laravel 13 + Vue 3 + **MySQL** + Redis + Element Plus; modular monolith dalam EIP; tanpa Filament
 - [x] Keputusan master pegawai milik EIP + kolom identitas resmi (NIP, NIK, id_simpeg)
 - [x] Keputusan DB EIP = MySQL (seragam sistem lama)
+- [x] Klarifikasi monolith vs microservice: modul baru EIP = modular monolith; sistem lama (gaji/aset/logistik/WA) = sistem terpisah existing yg diintegrasikan
 - [x] Dokumen desain skema database inti (docs/01-skemadb-inti.md)
 - [x] Dokumen rancangan integrasi (EIP + sistem lama + WA blast) (docs/02-rancangan-integrasi.md)
 - [x] Keputusan SSO: Google Workspace IdP (OIDC), tidak bangun SSO sendiri (docs/03-autentikasi-sso.md)
@@ -50,4 +51,8 @@ Dibuat: 2026-09-03
 - Rancangan integrasi EIP + sistem lama + server WA blast.
 - SSO: Google Workspace IdP via OIDC, SSO lintas sistem, tidak bangun sendiri.
 - Mode akses: login terbuka utk akun domain kampus; role manual per akun (RBAC).
+- Klarifikasi: banyak aplikasi terpisah menyerupai microservice, tapi bedakan
+  — modul baru EIP = modular monolith (jangan pecah jadi aplikasi); sistem lama
+  (gaji/aset/logistik/WA) = existing yg diintegrasikan, bukan microservice yg
+  kita rancang.
 - Konsolidasi seluruh keputusan ke CLAUDE.md (referensi global) utk eksekusi kode.
