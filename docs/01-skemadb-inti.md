@@ -4,7 +4,18 @@
 > Tabel di sini adalah **sumber kebenaran** yang dirujuk semua modul lain
 > (gaji, aset, pengadaan, logistik BHP, WA blast, akademik).
 
-Status: **Draft v0.1** — perlu review sebelum implementasi.
+Status: **Draft v0.2** — perlu review sebelum implementasi.
+
+## Keputusan master pegawai
+
+- **Master data pegawai dimiliki oleh EIP sendiri** (Pola A/C pragmatis).
+  Sistem eksternal (SIMPEG/akademik lama) aksesnya terbatas dan master datanya
+  tidak andal, sehingga tidak dijadikan sumber live.
+- Identitas resmi ASN (**NIP, NIK, ID_SIMPEG**) disimpan sebagai kolom
+  referensi pada tabel `pegawai`, diisi saat input/sinkronisasi berkala, untuk
+  keperluan resmi & pencocokan (`matching`) ke sistem SIMPEG bila akses terbuka.
+- Semua modul EIP memakai data pegawai yang dikelola EIP (satu jalur tulis:
+  hanya modul kepegawaian).
 
 ---
 
@@ -104,7 +115,9 @@ Personil inti — dirujuk oleh **gaji**, **aset** (PIC), **pengadaan/logistik**
 | kolom | tipe | keterangan |
 |---|---|---|
 | id | bigint / ulid | PK |
-| nip / nik | varchar nullable | NIP (ASN) atau NIK (KTP); unique bila ada |
+| nip | varchar unique nullable | NIP ASN (identitas resmi) |
+| nik | varchar unique nullable | NIK KTP (identitas resmi) |
+| id_simpeg | varchar unique nullable | kunci relasi ke sistem SIMPEG (pencocokan/matching) |
 | nama_lengkap | varchar | |
 | gelar_depan, gelar_belakang | varchar | |
 | jenis_kelamin | enum | `L`,`P` |
