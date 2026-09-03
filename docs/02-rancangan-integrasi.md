@@ -118,7 +118,7 @@ berbagi data `unit_kerja` & `pegawai`.
 
 | Lapisan | Pilihan |
 |---|---|
-| EIP backend | Laravel 11 + REST `/api/v1/`, Service layer per domain |
+| EIP backend | Laravel 13 + REST `/api/v1/`, Service layer per domain |
 | DB | PostgreSQL satu instance |
 | Queue | Laravel Queue + Redis |
 | Frontend | Vue 3 + Vite + TS + Pinia, UI Element Plus |

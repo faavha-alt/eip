@@ -29,7 +29,7 @@ gateway notifikasi outbound yang dipanggil EIP.
 
 | Lapisan | Pilihan |
 |---|---|
-| Backend | **Laravel 11** + REST API `/api/v1/`, pola Service layer per domain |
+| Backend | **Laravel 13** (versi terbaru/mutakhir) + REST API `/api/v1/`, pola Service layer per domain |
 | Database | **PostgreSQL** (satu instance) |
 | Auth | **Google Workspace sbg IdP via OIDC** — SSO lintas sistem |
 | Frontend | **Vue 3 + Vite + TypeScript + Pinia + Vue Router** (SPA terpisah) |
