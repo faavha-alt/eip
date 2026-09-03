@@ -11,6 +11,7 @@ Dibuat: 2026-09-03
 - [ ] Review skema database inti (tambah kolom sesuai kebutuhan nyata)
 - [x] Tambah kolom identitas resmi (NIP, NIK, id_simpeg) + catat keputusan master pegawai milik EIP
 - [x] Buat dokumen rancangan integrasi awal (docs/02-rancangan-integrasi.md)
+- [x] Keputusan SSO: Google Workspace sbg IdP (OIDC) lintas sistem, tidak bangun SSO sendiri (docs/03-autentikasi-sso.md)
 - [ ] Tulis migrasi Laravel untuk tabel master (organisasi, unit_kerja, jabatan, pegawai, penempatan)
 - [ ] Tentukan task berikutnya
 

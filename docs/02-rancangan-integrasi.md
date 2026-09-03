@@ -4,7 +4,7 @@
 > server WA blast yang sudah dirancang. Dokumen level konseptual → mengarah ke
 > desain teknis implementasi.
 
-Status: **Draft v0.1**
+Status: **Draft v0.2**
 
 ---
 

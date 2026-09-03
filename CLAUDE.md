@@ -13,7 +13,8 @@ dalam satu aplikasi terintegrasi.
   controllers gemuk.
 - **Database**: PostgreSQL satu instance. Master data dirujuk lintas modul,
   tidak diduplikasi.
-- **Auth**: Laravel Sanctum (token API).
+- **Auth**: Google Workspace sbg penyedia identitas (OIDC) — SSO lintas sistem;
+  tidak bangun SSO/password sendiri. Peran & izin (RBAC) dikelola EIP.
 - **Frontend**: Vue 3 + Vite + TypeScript + Pinia + Vue Router (SPA terpisah).
 - **UI kit**: Element Plus.
 - **Tidak pakai Filament** (keputusan: workflow rumit di beberapa tempat,
@@ -35,6 +36,8 @@ Detail: `docs/01-skemadb-inti.md`.
 - Penamaan DB `snake_case`, tabel jamak, model singular.
 - Satu jalur tulis data pegawai (hanya modul kepegawaian); modul lain baca.
 - API versioned `/api/v1/`.
+- Auth: OIDC Google (email = kunci relasi ke pegawai); Sanctum untuk
+  service-to-service.
 - Timeline & soft delete pada tabel yang butuh audit.
 
 ## Status
