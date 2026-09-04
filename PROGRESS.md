@@ -184,4 +184,18 @@ Dibuat: 2026-09-03
   58/58 ter-assign di dev & produksi.
 - **Status akhir produksi**: 190 pegawai, 21 unit_kerja, 89 jabatan, 289
   penempatan (231 fungsional + 58 struktural). Situs tetap sehat (HTTP 200).
-- Lanjut: L3 (OIDC Google + RBAC + Sanctum).
+- **Parser gelar depan/belakang** ditambah ke `pegawai:import` (`nama_lengkap`
+  sumber datang dgn gelar tertanam, mis. "Prof. Dr. Nama, S.Si., M.Si.").
+  Whitelist token gelar depan (Prof./Dr./Ir./Drs./Dra./apt./dr./dst,
+  termasuk bentuk gabungan Dr.rer.nat./Dr.Eng., termasuk varian ejaan
+  sumber yg tak konsisten spasi/titik). Gelar belakang = semua stlh koma
+  pertama. Diterapkan via re-run import (idempotent) di dev & produksi:
+  107/190 py gelar depan, 179/190 py gelar belakang. 2 nama masih
+  mengandung titik ("I.F. Nurcahyo", "R. Muhammad...") — BUKAN gelar,
+  itu bagian nama asli, sengaja dibiarkan.
+- **Rencana lanjutan (belum dikerjakan, "nanti")**: konversi
+  `status_kepegawaian`, `pendidikan_terakhir`, `golongan_ruang` dari kolom
+  enum jadi tabel master tersendiri (referensi via FK), menyusul pola
+  `organisasi`/`unit_kerja`/`jabatan`.
+- Lanjut: L3 (OIDC Google + RBAC + Sanctum), atau master status/pendidikan/
+  golongan kalau diminta duluan.
