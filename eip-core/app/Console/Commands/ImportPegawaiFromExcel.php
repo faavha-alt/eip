@@ -173,6 +173,7 @@ class ImportPegawaiFromExcel extends Command
         }
 
         $isActive = $status !== StatusKepegawaian::PurnaTugas;
+        $gelar = $this->parseGelar($nama);
 
         $pegawai = Pegawai::updateOrCreate(
             ['id_sumber' => trim((string) $row[1])],
@@ -181,7 +182,9 @@ class ImportPegawaiFromExcel extends Command
                 'nik' => $nik,
                 'npwp' => $npwp,
                 'no_seri_kepeg' => $noSeriKepeg,
-                'nama_lengkap' => $nama,
+                'nama_lengkap' => $gelar['inti'],
+                'gelar_depan' => $gelar['depan'],
+                'gelar_belakang' => $gelar['belakang'],
                 'jenis_kelamin' => null, // tidak tersedia di sumber
                 'tempat_lahir' => $tempatLahir,
                 'tanggal_lahir' => $tanggalLahir,
@@ -345,5 +348,40 @@ class ImportPegawaiFromExcel extends Command
 
             return null;
         }
+    }
+
+    /** Gelar depan yg dikenali, urutan tidak penting (dicek exact-match per token). */
+    private const GELAR_DEPAN = [
+        'Prof.', 'Prof.Drs.', 'Dr.rer.nat.', 'Dr.rer.nat', 'Dr.Eng.', 'Dr.-Ing.',
+        'Dr.', 'Ir.', 'Drs.', 'Dra.', 'apt.', 'dr.', 'Hj.', 'H.', 'Eng.', 'rer.nat.', 'K.H.',
+    ];
+
+    /**
+     * Pisahkan "Prof. Dr. Nama Lengkap, S.Si., M.Si." jadi gelar depan (token
+     * awal yg cocok whitelist gelar akademik/profesi), nama inti, dan gelar
+     * belakang (semua setelah koma pertama, utuh apa adanya).
+     *
+     * Heuristik, BUKAN sempurna — nama dgn inisial tengah (mis. "Irfan A N")
+     * aman krn inisial tunggal tidak ada di whitelist. Kasus tak lazim tetap
+     * mungkin salah; tinjau manual bila perlu.
+     *
+     * @return array{depan: ?string, belakang: ?string, inti: string}
+     */
+    private function parseGelar(string $namaMentah): array
+    {
+        [$depanDanNama, $belakang] = array_pad(explode(',', trim($namaMentah), 2), 2, null);
+        $belakang = $belakang !== null ? (trim($belakang) ?: null) : null;
+
+        $tokens = preg_split('/\s+/', trim($depanDanNama));
+        $depanTokens = [];
+        while (count($tokens) > 1 && in_array($tokens[0], self::GELAR_DEPAN, true)) {
+            $depanTokens[] = array_shift($tokens);
+        }
+
+        return [
+            'depan' => $depanTokens !== [] ? implode(' ', $depanTokens) : null,
+            'belakang' => $belakang,
+            'inti' => implode(' ', $tokens),
+        ];
     }
 }
