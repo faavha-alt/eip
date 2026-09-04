@@ -3,14 +3,20 @@
 > Dokumen analis/perancang sistem: menilai kondisi *existing*, mengunci
 > keputusan arsitektur, dan menurunkannya jadi langkah eksekusi berurutan.
 
-Status: **v0.1** — dibuat 2026-09-03 (akhir sesi desain).
+Status: **v0.2** — dibuat 2026-09-03, diperbarui 2026-09-04 (mulai eksekusi kode).
 
 ---
 
-## 1. Ruang lingkup (harus dipastikan sebelum coding)
+## 1. Ruang lingkup — **RESOLVED 2026-09-04**
 
-CLAUDE.md §7 menyebut "kampus/perguruan tinggi", namun arahan terbaru menyebut
-**"aplikasi sebuah fakultas"**. Dua kelas masalah berbeda:
+**Fakultas MIPA, Universitas Sebelas Maret (UNS).** Domain `eip.mipa.uns.ac.id`
+disiapkan pengguna (+ hosting). Ini skala **1 fakultas** (bukan 1 universitas
+penuh) — asumsi tim 1–2 orang & estimasi jumlah pegawai/unit di §0 lama
+terpakai. Seed data contoh (`MasterDataSeeder`) memakai struktur nyata: UNS
+(organisasi) → Fakultas MIPA (unit_kerja) → prodi Informatika/Matematika/
+Fisika/Kimia/Biologi + Bagian Tata Usaha.
+
+Sebelumnya, dua kelas masalah ini dipertimbangkan:
 
 | | 1 Fakultas | 1 Universitas |
 |---|---|---|
@@ -19,8 +25,8 @@ CLAUDE.md §7 menyebut "kampus/perguruan tinggi", namun arahan terbaru menyebut
 | Pengajuan/bulan | puluhan | ratusan–ribuan |
 | Admin/operator | 1–2 | tim |
 
-Asumsi kerja dokumen ini: **1 fakultas (atau universitas kecil), tim 1–2 orang,
-in-house**. → BLOCKER #1.
+Asumsi kerja dokumen ini: **1 fakultas, tim 1–2 orang, in-house** — kini
+terkonfirmasi (Fakultas MIPA UNS). ~~BLOCKER #1~~ selesai.
 
 ---
 
@@ -139,20 +145,37 @@ lain. Dicatat agar trade-off ini eksplisit; mitigasi ada di §3.1 poin 6–7.
 
 ## 6. Langkah eksekusi berurutan (besok, "satu-satu")
 
-### Langkah 1 — EIP Core: scaffold & fondasi
-- [ ] `composer create-project laravel/laravel eip-core` (Laravel 13), git init
-- [ ] Konfigurasi `.env`: MySQL `eip_core`, Redis queue, timezone, locale
-- [ ] Konvensi: folder `app/Domain/*`, Service layer, controller tipis
+### Langkah 1 — EIP Core: scaffold & fondasi ✅ (2026-09-04)
+- [x] `composer create-project laravel/laravel eip-core` → **Laravel 13.30.1**
+      di `eip-core/` (subfolder repo ini, bukan repo git terpisah)
+- [x] `laravel/boost` (dev) + guidelines AI ter-install (`eip-core/CLAUDE.md`)
+- [x] `.env.example` (committed): MySQL `eip_core`, Redis queue, locale id,
+      `APP_URL=https://eip.mipa.uns.ac.id`, placeholder OIDC + `ALLOWED_EMAIL_DOMAIN`.
+      `.env` lokal (gitignored) pakai **sqlite** — sandbox dev ini tidak ada
+      server MySQL; ganti ke MySQL nyata saat hosting siap.
+- [x] Konvensi: struktur Laravel standar (`app/Models`, `app/Enums`, factory/
+      seeder/test via `php artisan make:`) — TIDAK pakai `app/Domain/*` (itu
+      pola utk app *domain* nanti, bukan EIP Core yang cuma master+RBAC+API)
 
-### Langkah 2 — EIP Core: skema master + audit
-- [ ] Migrasi: `organisasi`, `unit_kerja` (self-ref tree + `organisasi_id`),
-      `jabatan`, `pegawai` (NIP/NIK/id_simpeg unique nullable), `penempatan`
-      (pivot pegawai×unit_kerja×jabatan, riwayat)
-- [ ] `timestamps` + `deleted_at` semua tabel
-- [ ] `audit_log` (paket mis. `owen-it/laravel-auditing` atau tabel sendiri)
-- [ ] Model + relasi + factory + seeder contoh (1 organisasi, pohon unit
-      fakultas, jabatan dasar)
-- [ ] Referensi: `docs/01-skemadb-inti.md` (finalisasi kolom saat ini)
+### Langkah 2 — EIP Core: skema master + audit ✅ (2026-09-04)
+- [x] Migrasi (nama tabel Indonesia sesuai `docs/01`, bukan hasil pluralisasi
+      Inggris Eloquent): `organisasi`, `pegawai`, `unit_kerja` (self-ref tree +
+      `organisasi_id` + `kepala_id`→pegawai), `jabatan`, `penempatan` (FK ke
+      ketiganya). FK: `restrictOnDelete` utk integritas hierarki, `cascadeOnDelete`
+      pegawai→penempatan, `nullOnDelete` utk kepala/parent opsional.
+- [x] `timestamps` + `softDeletes()` semua tabel master
+- [x] `audit_logs` — **tabel sendiri** (bukan paket pihak ketiga, sesuai Boost
+      guideline "jangan tambah dependency tanpa approval"): polymorphic
+      `auditable_type/id`, `old_values`/`new_values` JSON, `user_id`
+- [x] Enum PHP backed (`App\Enums\*`) utk tiap kolom kategori (jenis, status)
+- [x] Model + relasi (parent/children, kepala, penempatan) + factory tiap model
+- [x] `MasterDataSeeder`: UNS → Fakultas MIPA → 5 prodi + TU, 5 jabatan dasar,
+      24 pegawai contoh dgn penempatan
+- [x] Test `tests/Feature/MasterDataSchemaTest.php` (5 test): tree unit_kerja,
+      relasi penempatan, unique constraint (nip/kode), FK restrict on forceDelete
+- [x] `vendor/bin/pint` bersih; `php artisan test` 7/7 lulus
+- [ ] Review lanjut: kolom tambahan sesuai kebutuhan operasional FMIPA nyata
+      (blocker §7 masih terbuka)
 
 ### Langkah 3 — EIP Core: auth OIDC + RBAC
 - [ ] Socialite Google (OIDC), batasi `hd` / domain email kampus (BLOCKER #7)
@@ -201,7 +224,8 @@ lain. Dicatat agar trade-off ini eksplisit; mitigasi ada di §3.1 poin 6–7.
 ## 7. Blocker & pertanyaan terbuka
 
 **Blocker — jawab sebelum / saat Fase 0–2:**
-1. Ruang lingkup: 1 fakultas atau 1 universitas? Perkiraan jumlah pegawai & unit.
+1. ~~Ruang lingkup~~ **RESOLVED**: Fakultas MIPA UNS (`eip.mipa.uns.ac.id`). Estimasi
+   jumlah pegawai & unit riil masih perlu dikonfirmasi utk validasi seed/skema.
 2. Sistem lama: (a) satu server MySQL yang sama? (b) DB boleh dibaca? (c) kode
    bisa dimodifikasi? (d) siapa yang memelihara?
 3. Cara tiap sistem lama meng-*identify* pegawai sekarang (kolom kunci) — untuk

@@ -162,7 +162,8 @@ master khusus modul saat modul tsb mulai.
 
 ## 7. Konteks organisasi
 
-- Institusi: **kampus/perguruan tinggi**. Tim kecil (1–2 orang), in-house.
+- Institusi: **Fakultas MIPA, Universitas Sebelas Maret (UNS)** — domain
+  `eip.mipa.uns.ac.id` (hosting disiapkan pengguna). Tim kecil (1–2 orang), in-house.
 - Sistem lama: **gaji, aset, logistik** = Laravel + MySQL, beroperasi & tetap
   dipakai.
 - Ada **Google Workspace** (SSO). Identitas resmi ASN: **NIP, NIK, ID_SIMPEG**.
@@ -192,4 +193,5 @@ Rincian langkah teknis per fase: `docs/04-analisis-dan-rencana-eksekusi.md`.
 
 ## 9. Status
 
-Lihat `PROGRESS.md` utk progres detail & riwayat sesi.
+Kode mulai berjalan: **`eip-core/`** (Laravel 13) — skema master + audit_log
+(Langkah 1–2) selesai. Lihat `PROGRESS.md` utk progres detail & riwayat sesi.

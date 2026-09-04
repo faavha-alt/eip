@@ -36,12 +36,16 @@ Dibuat: 2026-09-03
 - [x] Dokumen analisis & rencana eksekusi (docs/04-analisis-dan-rencana-eksekusi.md)
 - [x] Konsolidasi CLAUDE.md sebagai referensi global lengkap
 
-### Belum dikerjakan — eksekusi kode (mulai besok, "satu-satu")
+### Eksekusi kode — status per langkah (docs/04 §6)
 
-Langkah berurutan lengkap: **`docs/04-analisis-dan-rencana-eksekusi.md` §6**.
-Ringkas:
-- [ ] L1 — EIP Core: scaffold Laravel 13 + `.env` MySQL/Redis + konvensi folder
-- [ ] L2 — EIP Core: migrasi master (organisasi, unit_kerja tree, jabatan, pegawai, penempatan) + audit_log + seeder
+- [x] **L1 — EIP Core: scaffold & fondasi** (2026-09-04). `eip-core/` (Laravel
+      13.30.1) + `laravel/boost` guidelines. `.env.example` = MySQL/Redis/domain
+      resmi; `.env` lokal = sqlite (sandbox dev, tanpa server MySQL).
+- [x] **L2 — EIP Core: skema master + audit** (2026-09-04). Migrasi `organisasi`,
+      `pegawai`, `unit_kerja`, `jabatan`, `penempatan`, `audit_logs` (tabel
+      sendiri) + enum PHP + model/relasi + factory + `MasterDataSeeder`
+      (struktur nyata UNS→FMIPA→5 prodi+TU) + 5 test (`MasterDataSchemaTest`,
+      7/7 lulus) + Pint bersih.
 - [ ] L3 — EIP Core: OIDC Google (batasi domain email) + RBAC (users/roles/permissions) + Sanctum s2s
 - [ ] L4 — EIP Core: API `/api/v1/` (read master + `updated_since`; write pegawai khusus token kepegawaian; roles)
 - [ ] L5 — EIP Core: portal SSO + shared library `eip/client` (HTTP client, DTO, middleware)
@@ -51,11 +55,12 @@ Ringkas:
 - [ ] L9+ — Pengadaan → Perencanaan → sisa sistem lama → Akademik
 
 ### Blocker sebelum/saat eksekusi (docs/04 §7)
-- [ ] Ruang lingkup: 1 fakultas atau 1 universitas? Jumlah pegawai & unit
+- [x] ~~Ruang lingkup~~ **RESOLVED**: Fakultas MIPA UNS, domain `eip.mipa.uns.ac.id`
 - [ ] Sistem lama: satu server MySQL? DB boleh dibaca? Kode bisa dimodifikasi? Siapa maintain?
 - [ ] Cara sistem lama identify pegawai sekarang (kolom kunci) utk matching
 - [ ] WA blast: sudah jalan atau masih desain? Kontrak API final?
-- [ ] Struktur `unit_kerja` nyata + apakah hierarki approval = hierarki unit persis
+- [ ] Struktur `unit_kerja` nyata (FMIPA) + apakah hierarki approval = hierarki unit persis
+- [ ] Kredensial MySQL & Redis produksi (menyusul setelah hosting `eip.mipa.uns.ac.id` siap)
 
 ## Log sesi
 
@@ -94,3 +99,24 @@ Ringkas:
   ke Fase 2 (pilot 1 sistem).
 - Dibuat `docs/04-analisis-dan-rencana-eksekusi.md`; CLAUDE.md §1/§3/§4/§6/§8
   disesuaikan. **Belum ada kode — mulai eksekusi "satu-satu" sesi berikutnya.**
+
+### 2026-09-04 (mulai eksekusi kode — L1 & L2 EIP Core)
+- **Ruang lingkup RESOLVED**: pengguna mengonfirmasi **Fakultas MIPA UNS**,
+  domain `eip.mipa.uns.ac.id` (hosting disiapkan pengguna). CLAUDE.md §7 &
+  docs/04 §1 diperbarui.
+- Scaffold `eip-core/`: Laravel 13.30.1 + `laravel/boost` (guidelines AI).
+  `.env.example` (committed) = target nyata (MySQL, Redis, domain, placeholder
+  OIDC); `.env` lokal (gitignored) = sqlite krn sandbox dev tanpa server MySQL.
+- Skema master dibangun sesuai `docs/01`: migrasi `organisasi`, `pegawai`,
+  `unit_kerja`, `jabatan`, `penempatan` (nama tabel Indonesia asli, bukan hasil
+  pluralisasi Inggris Eloquent) + `audit_logs` (tabel sendiri, bukan paket
+  pihak ketiga) + enum PHP backed + model/relasi + factory.
+- `MasterDataSeeder`: struktur nyata UNS → Fakultas MIPA → prodi Informatika/
+  Matematika/Fisika/Kimia/Biologi + Bagian TU, 5 jabatan dasar, 24 pegawai
+  contoh dgn penempatan.
+- Test `MasterDataSchemaTest` (5 test: tree unit_kerja, relasi penempatan,
+  unique constraint, FK restrict on forceDelete) — 7/7 test proyek lulus,
+  Pint bersih.
+- **Belum push** — remote git belum dikonfigurasi (ditanyakan ke pengguna).
+- Lanjut L3 (OIDC + RBAC) sesi berikutnya; kredensial MySQL/Redis produksi
+  menyusul setelah hosting siap.

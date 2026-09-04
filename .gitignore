@@ -1,0 +1,6 @@
+# Data pegawai/organisasi nyata — JANGAN commit (berisi PII: NIP/NIK/nama/dll).
+# Simpan lokal saja; import ke DB lewat seeder/import khusus, bukan lewat git.
+docs/data_pegawai.xlsx
+*.xlsx
+*.xls
+*.csv
