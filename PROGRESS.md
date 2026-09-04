@@ -147,4 +147,27 @@ Dibuat: 2026-09-03
   langsung di docroot. Sudah diuji end-to-end (idempotent, situs tetap 200).
 - **Cara redeploy selanjutnya**: push ke `master` dari mesin dev, lalu
   `ssh eip-web '~/deploy-eip-core.sh'`.
-- Lanjut L3 (OIDC + RBAC) sesi berikutnya.
+
+### 2026-09-04 (lanjutan — skema dikoreksi dari data pegawai nyata + importer)
+- **`docs/data_pegawai.xlsx` dibaca & dianalisis** (190 pegawai asli; sheet
+  sumber juga memuat tabel rekap statistik yg sempat salah kebaca sbg data
+  pegawai — sudah difilter). Detail lengkap: `docs/04` §Langkah 2b.
+- **Koreksi skema penting**: prodi FMIPA yg benar (S-1 Biologi/Farmasi/Fisika/
+  Ilmu Lingkungan/Kimia/Matematika/Statistika/Profesi Apoteker — bukan
+  "Informatika" yg sempat salah diseed), `status_kepegawaian` diganti ke
+  kategori nyata (pns/non_pns/kontrak_profesional/purna_tugas), kolom baru
+  `jenis_pegawai` (dosen/tendik, terpisah dari status), `npwp`,
+  `no_seri_kepeg`, `pendidikan_terakhir`, `golongan_ruang`, `tmt_golongan`,
+  `id_sumber`. `jenis_kelamin` jadi nullable (sumber tak menyediakan).
+- `MasterDataSeeder` disederhanakan: HANYA UNS + Fakultas MIPA (fakta
+  publik). Prodi & jabatan sungguhan dibentuk otomatis oleh importer dari
+  nama asli sumber.
+- **`php artisan pegawai:import {path} [--dry-run]`** dibuat & diuji di DB
+  dev lokal: 190 pegawai, 20 unit_kerja, 89 jabatan, 231 penempatan, 0
+  warning, **idempotent**. 58 jabatan struktural (Dekan/Wadek/Kaprodi/dst)
+  dicatat ke katalog tapi SENGAJA belum di-assign ke unit (perlu tinjauan
+  manual, terlalu berisiko ditebak otomatis dari judul jabatan).
+- Kode di-commit ke git; **data (.xlsx, hasil import) TIDAK ikut git**.
+- **Belum dijalankan ke produksi** — menunggu konfirmasi pemilik data
+  (import PII nyata ke sistem live perlu persetujuan eksplisit).
+- Lanjut: konfirmasi import ke produksi, lalu L3 (OIDC + RBAC).

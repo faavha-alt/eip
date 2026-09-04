@@ -174,8 +174,50 @@ lain. Dicatat agar trade-off ini eksplisit; mitigasi ada di §3.1 poin 6–7.
 - [x] Test `tests/Feature/MasterDataSchemaTest.php` (5 test): tree unit_kerja,
       relasi penempatan, unique constraint (nip/kode), FK restrict on forceDelete
 - [x] `vendor/bin/pint` bersih; `php artisan test` 7/7 lulus
-- [ ] Review lanjut: kolom tambahan sesuai kebutuhan operasional FMIPA nyata
-      (blocker §7 masih terbuka)
+
+### Langkah 2b — Skema dikoreksi dari data pegawai nyata ✅ (2026-09-04)
+
+`docs/data_pegawai.xlsx` (data mentah FMIPA, TIDAK ikut git — PII) dibaca &
+dianalisis. **Koreksi penting** thd asumsi awal:
+
+- Prodi FMIPA yg BENAR: S-1 Biologi, Farmasi, Fisika, Ilmu Lingkungan, Kimia,
+  Matematika, Statistika, Profesi Apoteker (+ prodi pascasarjana S-2/S-3
+  sbg *homebase* kedua dosen). **"Informatika" di seed awal SALAH — dihapus.**
+- `status_kepegawaian` nyata: `pns`/`non_pns`/`kontrak_profesional`/`purna_tugas`
+  (bukan tebakan awal `honor`/`dosen_tt`/`dosen_yayasan`).
+- Dimensi **jenis_pegawai** (dosen/tendik) TERPISAH dari status_kepegawaian —
+  kolom baru `jenis_pegawai`.
+- Kolom baru (migrasi additive, `doctrine/dbal` ditambah utk `->change()`):
+  `id_sumber` (kunci impor idempoten), `npwp` (tanpa unique — presisi Excel
+  rawan collide), `no_seri_kepeg`, `pendidikan_terakhir`, `golongan_ruang`,
+  `tmt_golongan`. `jenis_kelamin` dibuat **nullable** — sumber data sama
+  sekali tidak menyediakan jenis kelamin.
+- Jabatan struktural (58 jenis: Dekan, Wadek, Kaprodi, Ka.Lab, dst) dan
+  jabatan fungsional (32 jenis: Guru Besar..Lektor..Asisten Ahli utk dosen;
+  Analis/Pengadministrasi/Pengelola/Pranata/Teknisi/Pramu utk tendik) —
+  jauh lebih kaya dari 5 jabatan tebakan awal.
+- `MasterDataSeeder` disederhanakan: HANYA Organisasi UNS + UnitKerja
+  Fakultas MIPA (fakta publik terverifikasi). Prodi/jabatan sungguhan
+  dibentuk otomatis oleh importer dari nilai asli sumber (supaya nama
+  pasti cocok, tidak ada katalog tebakan terpisah yg berisiko mismatch).
+
+**`php artisan pegawai:import {path} [--dry-run]`** dibuat:
+- Filter baris valid via kolom `ID` numerik (sheet sumber punya tabel rekap
+  statistik yg menempel di bawah tabel utama — ikut kebaca kalau filter
+  cuma dari kolom Nama).
+- Upsert `unit_kerja`/`jabatan` on-the-fly by nama asli sumber; upsert
+  `pegawai` by `id_sumber`; upsert `penempatan` (utama + homebase kedua bila
+  beda dari unit utama) — **idempotent**, aman dijalankan ulang.
+- Jabatan struktural dicatat ke katalog TAPI **tidak** otomatis dibuatkan
+  penempatan (unit tujuan tak bisa dipastikan dari judul jabatan saja) —
+  dilaporkan sbg daftar utk assignment manual.
+- Diuji di DB dev lokal (sqlite): **190 pegawai, 20 unit_kerja, 89 jabatan,
+  231 penempatan**, 0 warning, idempoten (re-run = 0 baru/190 update).
+- Keterbatasan tercatat: `jenis_kelamin` semua null (tidak ada di sumber),
+  `gelar_depan/belakang` tidak diparse dari nama (nama disimpan utuh apa
+  adanya), `no_hp` kosong di 183/190 (perlu pengumpulan terpisah utk WA
+  blast), 58 jabatan struktural perlu assignment unit manual.
+- **Belum dijalankan ke produksi** — menunggu konfirmasi pemilik data.
 
 ### Langkah 3 — EIP Core: auth OIDC + RBAC
 - [ ] Socialite Google (OIDC), batasi `hd` / domain email kampus (BLOCKER #7)

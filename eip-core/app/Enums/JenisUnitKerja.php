@@ -9,5 +9,6 @@ enum JenisUnitKerja: string
     case Prodi = 'prodi';
     case Biro = 'biro';
     case Bagian = 'bagian';
+    case Subbagian = 'subbagian';
     case Seksi = 'seksi';
 }

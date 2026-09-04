@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\JenisKelamin;
+use App\Enums\JenisPegawai;
+use App\Enums\PendidikanTerakhir;
 use App\Enums\StatusKepegawaian;
 use Database\Factories\PegawaiFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,9 +16,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Table('pegawai')]
 #[Fillable([
-    'nip', 'nik', 'id_simpeg', 'nama_lengkap', 'gelar_depan', 'gelar_belakang',
+    'id_sumber', 'nip', 'nik', 'npwp', 'id_simpeg', 'no_seri_kepeg',
+    'nama_lengkap', 'gelar_depan', 'gelar_belakang',
     'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'email', 'no_hp',
-    'status_kepegawaian', 'foto', 'tanggal_masuk', 'tanggal_keluar', 'is_active',
+    'status_kepegawaian', 'jenis_pegawai', 'pendidikan_terakhir',
+    'golongan_ruang', 'tmt_golongan',
+    'foto', 'tanggal_masuk', 'tanggal_keluar', 'is_active',
 ])]
 class Pegawai extends Model
 {
@@ -33,9 +38,12 @@ class Pegawai extends Model
         return [
             'jenis_kelamin' => JenisKelamin::class,
             'status_kepegawaian' => StatusKepegawaian::class,
+            'jenis_pegawai' => JenisPegawai::class,
+            'pendidikan_terakhir' => PendidikanTerakhir::class,
             'tanggal_lahir' => 'date',
             'tanggal_masuk' => 'date',
             'tanggal_keluar' => 'date',
+            'tmt_golongan' => 'date',
             'is_active' => 'boolean',
         ];
     }

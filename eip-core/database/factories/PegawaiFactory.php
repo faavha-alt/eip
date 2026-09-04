@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Enums\JenisKelamin;
+use App\Enums\JenisPegawai;
+use App\Enums\PendidikanTerakhir;
 use App\Enums\StatusKepegawaian;
 use App\Models\Pegawai;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -22,9 +24,12 @@ class PegawaiFactory extends Factory
         $jenisKelamin = fake()->randomElement(JenisKelamin::cases());
 
         return [
+            'id_sumber' => null,
             'nip' => fake()->unique()->numerify('19##########0#1###'),
             'nik' => fake()->unique()->numerify('##################'),
+            'npwp' => fake()->unique()->numerify('##.###.###.#-###.###'),
             'id_simpeg' => fake()->unique()->numerify('SIMPEG#######'),
+            'no_seri_kepeg' => fake()->unique()->bothify('?.######'),
             'nama_lengkap' => $jenisKelamin === JenisKelamin::LakiLaki
                 ? fake()->name('male')
                 : fake()->name('female'),
@@ -36,6 +41,10 @@ class PegawaiFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'no_hp' => fake()->numerify('08##########'),
             'status_kepegawaian' => fake()->randomElement(StatusKepegawaian::cases()),
+            'jenis_pegawai' => fake()->randomElement(JenisPegawai::cases()),
+            'pendidikan_terakhir' => fake()->randomElement(PendidikanTerakhir::cases()),
+            'golongan_ruang' => fake()->randomElement(['III/a', 'III/b', 'III/c', 'III/d', 'IV/a']),
+            'tmt_golongan' => fake()->dateTimeBetween('-10 years', '-1 years'),
             'foto' => null,
             'tanggal_masuk' => fake()->dateTimeBetween('-20 years', '-1 years'),
             'tanggal_keluar' => null,
