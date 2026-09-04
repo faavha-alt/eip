@@ -5,12 +5,13 @@ namespace App\Console\Commands;
 use App\Enums\JenisJabatan;
 use App\Enums\JenisPegawai;
 use App\Enums\JenisUnitKerja;
-use App\Enums\PendidikanTerakhir;
-use App\Enums\StatusKepegawaian;
 use App\Enums\StatusPenempatan;
+use App\Models\GolonganRuang;
 use App\Models\Jabatan;
 use App\Models\Pegawai;
+use App\Models\Pendidikan;
 use App\Models\Penempatan;
+use App\Models\StatusKepegawaian;
 use App\Models\UnitKerja;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -149,10 +150,13 @@ class ImportPegawaiFromExcel extends Command
         $tanggalLahir = $this->parseTanggal($row[20] ?? null, $rowNum, 'Tanggal Lahir');
         $jabatanStrukturalNama = trim((string) ($row[24] ?? ''));
 
-        $status = $this->mapStatus($statusRaw, $rowNum);
+        $statusKode = $this->mapStatusKode($statusRaw, $rowNum);
+        $status = $statusKode ? StatusKepegawaian::where('kode', $statusKode)->first() : null;
         $jenisPegawai = $jenisPegawaiRaw === 'Tenaga Pendidik' ? JenisPegawai::TenagaPendidik
             : ($jenisPegawaiRaw === 'Tenaga Kependidikan' ? JenisPegawai::TenagaKependidikan : null);
-        $pendidikan = $this->mapPendidikan($pendidikanRaw);
+        $pendidikanKode = $this->mapPendidikanKode($pendidikanRaw);
+        $pendidikan = $pendidikanKode ? Pendidikan::where('kode', $pendidikanKode)->first() : null;
+        $golongan = $this->resolveGolongan($golonganRuang);
 
         $subUnit = $subUnitNama !== '' ? $this->resolveUnitKerja($subUnitNama, $fakultas, $stats) : null;
         $homebase = ($homebaseNama !== '' && $homebaseNama !== $subUnitNama)
@@ -172,7 +176,7 @@ class ImportPegawaiFromExcel extends Command
             $this->strukturalNeedsReview[] = ['row' => $rowNum, 'nama' => $nama, 'jabatan' => $jabatanStrukturalNama];
         }
 
-        $isActive = $status !== StatusKepegawaian::PurnaTugas;
+        $isActive = $statusKode !== 'purna_tugas';
         $gelar = $this->parseGelar($nama);
 
         $pegawai = Pegawai::updateOrCreate(
@@ -190,10 +194,10 @@ class ImportPegawaiFromExcel extends Command
                 'tanggal_lahir' => $tanggalLahir,
                 'email' => $email,
                 'no_hp' => $noHp,
-                'status_kepegawaian' => $status,
+                'status_kepegawaian_id' => $status?->id,
                 'jenis_pegawai' => $jenisPegawai,
-                'pendidikan_terakhir' => $pendidikan,
-                'golongan_ruang' => $golonganRuang,
+                'pendidikan_terakhir_id' => $pendidikan?->id,
+                'golongan_ruang_id' => $golongan?->id,
                 'tmt_golongan' => $tmtGol,
                 'tanggal_masuk' => $tanggalMasuk,
                 'is_active' => $isActive,
@@ -290,33 +294,59 @@ class ImportPegawaiFromExcel extends Command
         };
     }
 
-    private function mapStatus(string $raw, int $rowNum): ?StatusKepegawaian
+    /** Kode master `status_kepegawaian` (lihat migrasi seed-nya). */
+    private function mapStatusKode(string $raw, int $rowNum): ?string
     {
-        $status = match ($raw) {
-            'PNS' => StatusKepegawaian::Pns,
-            'Non PNS' => StatusKepegawaian::NonPns,
-            'Kontrak Profesional' => StatusKepegawaian::KontrakProfesional,
-            'Purna Tugas' => StatusKepegawaian::PurnaTugas,
+        $kode = match ($raw) {
+            'PNS' => 'pns',
+            'Non PNS' => 'non_pns',
+            'Kontrak Profesional' => 'kontrak_profesional',
+            'Purna Tugas' => 'purna_tugas',
             default => null,
         };
-        if ($status === null) {
+        if ($kode === null) {
             $this->warnings[] = "baris {$rowNum}: Status Pegawai tidak dikenali [{$raw}]";
         }
 
-        return $status;
+        return $kode;
     }
 
-    private function mapPendidikan(string $raw): ?PendidikanTerakhir
+    /** Kode master `pendidikan` (lihat migrasi seed-nya). */
+    private function mapPendidikanKode(string $raw): ?string
     {
         return match ($raw) {
-            'SMU/SLTA' => PendidikanTerakhir::SmaSlta,
-            'D3' => PendidikanTerakhir::D3,
-            'S1' => PendidikanTerakhir::S1,
-            'PROFESI' => PendidikanTerakhir::Profesi,
-            'S2' => PendidikanTerakhir::S2,
-            'S3' => PendidikanTerakhir::S3,
+            'SMU/SLTA' => 'sma_slta',
+            'D3' => 'd3',
+            'S1' => 's1',
+            'PROFESI' => 'profesi',
+            'S2' => 's2',
+            'S3' => 's3',
             default => null,
         };
+    }
+
+    /**
+     * "X" di sumber adalah placeholder "tidak berlaku" (non-PNS umumnya tak
+     * py golongan), bukan golongan sungguhan — dipetakan ke null, bukan
+     * dibuatkan record master. Golongan lain yg belum ada di seed migrasi
+     * (jarang terjadi) dibuat on-the-fly spy data tidak hilang.
+     */
+    private function resolveGolongan(?string $raw): ?GolonganRuang
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '' || $raw === '-' || Str::upper($raw) === 'X') {
+            return null;
+        }
+
+        $golongan = GolonganRuang::firstOrCreate(
+            ['kode' => $raw],
+            ['nama' => null, 'tingkat' => 0, 'is_active' => true],
+        );
+        if ($golongan->wasRecentlyCreated) {
+            $this->warnings[] = "golongan_ruang baru di luar seed migrasi: [{$raw}] (tingkat/urutan blm diisi, lengkapi manual)";
+        }
+
+        return $golongan;
     }
 
     private function sanitizeDigits(mixed $value, int $rowNum, string $label): ?string

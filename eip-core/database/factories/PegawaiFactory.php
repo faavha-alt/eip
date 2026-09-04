@@ -4,9 +4,10 @@ namespace Database\Factories;
 
 use App\Enums\JenisKelamin;
 use App\Enums\JenisPegawai;
-use App\Enums\PendidikanTerakhir;
-use App\Enums\StatusKepegawaian;
+use App\Models\GolonganRuang;
 use App\Models\Pegawai;
+use App\Models\Pendidikan;
+use App\Models\StatusKepegawaian;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -40,10 +41,15 @@ class PegawaiFactory extends Factory
             'tanggal_lahir' => fake()->dateTimeBetween('-60 years', '-22 years'),
             'email' => fake()->unique()->safeEmail(),
             'no_hp' => fake()->numerify('08##########'),
-            'status_kepegawaian' => fake()->randomElement(StatusKepegawaian::cases()),
+            // Master status/pendidikan/golongan diseed lewat migrasi; ambil
+            // salah satu yg sudah ada drpd bikin baru tiap kali factory dipakai.
+            'status_kepegawaian_id' => StatusKepegawaian::query()->inRandomOrder()->value('id')
+                ?? StatusKepegawaian::factory(),
             'jenis_pegawai' => fake()->randomElement(JenisPegawai::cases()),
-            'pendidikan_terakhir' => fake()->randomElement(PendidikanTerakhir::cases()),
-            'golongan_ruang' => fake()->randomElement(['III/a', 'III/b', 'III/c', 'III/d', 'IV/a']),
+            'pendidikan_terakhir_id' => Pendidikan::query()->inRandomOrder()->value('id')
+                ?? Pendidikan::factory(),
+            'golongan_ruang_id' => GolonganRuang::query()->inRandomOrder()->value('id')
+                ?? GolonganRuang::factory(),
             'tmt_golongan' => fake()->dateTimeBetween('-10 years', '-1 years'),
             'foto' => null,
             'tanggal_masuk' => fake()->dateTimeBetween('-20 years', '-1 years'),
