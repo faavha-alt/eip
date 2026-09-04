@@ -281,6 +281,32 @@ Dibuat: 2026-09-03
   ini (log server: exception Socialite, 0 user tercipta) meski awalnya
   dilaporkan "berhasil" — dicek ulang via DB, ternyata belum; setelah fix,
   dicek ulang via DB lagi dan BENAR berhasil.
+- Role admin ditetapkan ke `favha@staff.uns.ac.id` via `role:assign`.
+
+### 2026-09-04 (lanjutan — dashboard AeroDeck sebelum Langkah 4)
+- Sebelum Langkah 4, diminta pengguna: tampilkan data pegawai lewat dashboard
+  yang bagus. Dipakai skill **`ui-dashboard-aerodeck`** (glassmorphism Apple/
+  Tesla) diadaptasi ke domain EIP — bukan konten dummy telemetry skill-nya.
+- Tailwind v4 + Vite (sudah ada di scaffold Laravel, belum pernah dipakai)
+  diaktifkan; Chart.js via npm. **Tanpa CDN** sesuai aturan skill (ini app
+  produksi sungguhan, bukan artifact sekali pakai).
+- `DashboardController`: semua angka LIVE dari DB (total/aktif pegawai,
+  dosen vs tendik, unit kerja, jabatan struktural/fungsional), chart batang
+  pegawai per unit (toggle Semua/Dosen/Tendik), panel "Kelengkapan Data"
+  (NUPTK/no HP/jenis kelamin/golongan yg masih kosong — transparan, bukan
+  disembunyikan), tabel semua unit kerja + kepala + jumlah pegawai.
+- **Node.js dipasang di server produksi tanpa root** (`~/node`, binary resmi
+  nodejs.org diekstrak manual — tidak ada sudo/nvm) — dibutuhkan skrip
+  redeploy utk `npm ci && npm run build` setiap deploy ke depan.
+- **Bug infra ditemukan & diperbaiki**: skrip `~/deploy-eip-core.sh` (yang
+  dipanggil `ssh eip-web '~/deploy-eip-core.sh'`) adalah SALINAN MANUAL di
+  `$HOME`, terpisah dari `eip-core/deploy/deploy-eip-core.sh` yang di-git —
+  perubahan ke skrip via git TIDAK otomatis sampai ke salinan yg benar-benar
+  dieksekusi. Ketahuan krn npm build "sukses" tanpa error tapi `public/build`
+  tidak pernah muncul. **Diperbaiki jadi wrapper tipis**: `~/deploy-eip-core.sh`
+  sekarang HANYA `git fetch && reset --hard` lalu `exec` skrip yg di-git —
+  tidak akan basi lagi krn selalu tarik versi terbaru dulu sebelum jalan.
+- Diuji: render dgn 190 pegawai asli (bukan cuma factory test) — HTML
+  bersih, aset Vite (CSS+JS) 200 di produksi. 21/21 test lulus, Pint bersih.
 - Lanjut: Langkah 4 (API `/api/v1/` master pegawai/unit_kerja/jabatan/
-  organisasi utk dikonsumsi app lain), + tetapkan role admin ke akun
-  pertama (`favha@staff.uns.ac.id`) via `role:assign`.
+  organisasi utk dikonsumsi app lain).
