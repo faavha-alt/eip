@@ -267,10 +267,20 @@ Dibuat: 2026-09-03
   API roles 401/200) + smoke test manual (service-client:create → curl API
   sungguhan → 200/401) + full pipeline import 190 pegawai tetap mulus.
   19/19 test lulus, Pint bersih. Deploy produksi mulus (additive).
-- **BLOCKER: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` nyata belum ada.**
-  Perlu dibuat di Google Cloud Console (terhubung ke Google Workspace UNS),
-  redirect URI `https://eip.mipa.uns.ac.id/auth/google/callback`. Semua
-  kode sudah siap — begitu kredensial ada, tinggal isi `.env` produksi,
-  login langsung bisa dites sungguhan.
+- **Kredensial Google Cloud Console dibuat pengguna & dipasang** (`.env`
+  produksi) — login Google **sungguhan diuji dan terverifikasi lewat DB**
+  (bukan cuma laporan user): akun `favha@staff.uns.ac.id` berhasil masuk,
+  otomatis terhubung ke pegawai "Zulfa Nurul Hakim".
+- **Bug ditemukan saat tes sungguhan & diperbaiki**: `ALLOWED_EMAIL_DOMAIN`
+  sempat diisi cuma `mipa.uns.ac.id` (asumsi awal, tidak diverifikasi ke
+  data nyata) — padahal cek data pegawai riil: **181/189 pakai
+  `@staff.uns.ac.id`, cuma 2/189 pakai `@mipa.uns.ac.id`**, 6 gmail pribadi.
+  Hampir semua pegawai asli tertolak login. Diganti jadi
+  `ALLOWED_EMAIL_DOMAINS` (jamak, multi-domain) = `staff.uns.ac.id,mipa.uns.ac.id`.
+  Test regresi ditambah. Percobaan login pertama user sempat gagal krn bug
+  ini (log server: exception Socialite, 0 user tercipta) meski awalnya
+  dilaporkan "berhasil" — dicek ulang via DB, ternyata belum; setelah fix,
+  dicek ulang via DB lagi dan BENAR berhasil.
 - Lanjut: Langkah 4 (API `/api/v1/` master pegawai/unit_kerja/jabatan/
-  organisasi utk dikonsumsi app lain) atau isi kredensial Google dulu.
+  organisasi utk dikonsumsi app lain), + tetapkan role admin ke akun
+  pertama (`favha@staff.uns.ac.id`) via `role:assign`.
