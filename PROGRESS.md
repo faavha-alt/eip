@@ -193,9 +193,22 @@ Dibuat: 2026-09-03
   107/190 py gelar depan, 179/190 py gelar belakang. 2 nama masih
   mengandung titik ("I.F. Nurcahyo", "R. Muhammad...") — BUKAN gelar,
   itu bagian nama asli, sengaja dibiarkan.
-- **Rencana lanjutan (belum dikerjakan, "nanti")**: konversi
-  `status_kepegawaian`, `pendidikan_terakhir`, `golongan_ruang` dari kolom
-  enum jadi tabel master tersendiri (referensi via FK), menyusul pola
-  `organisasi`/`unit_kerja`/`jabatan`.
-- Lanjut: L3 (OIDC Google + RBAC + Sanctum), atau master status/pendidikan/
-  golongan kalau diminta duluan.
+- **Master `status_kepegawaian`/`pendidikan`/`golongan_ruang` DIKERJAKAN
+  (bukan ditunda)** — pengguna minta langsung, bukan "nanti". Dinaikkan dari
+  kolom string/enum jadi tabel master tersendiri (pola sama dgn organisasi/
+  unit_kerja/jabatan), referensi via FK, bisa dikelola via UI nanti:
+  - `status_kepegawaian` (4 baris: pns/non_pns/kontrak_profesional/purna_tugas)
+  - `pendidikan` (6 baris: sma_slta..d3..s1..profesi..s2..s3, + `jenjang` utk urutan)
+  - `golongan_ruang` (11 baris: II/c..IV/e, + `tingkat` utk urutan). Nilai
+    sumber "X" (placeholder non-PNS) dipetakan ke null, bukan record master.
+  - Migrasi: buat tabel + seed nilai referensi → tambah FK nullable ke
+    `pegawai` → backfill dari kolom string lama → hapus kolom lama. Enum
+    `StatusKepegawaian`/`PendidikanTerakhir` dihapus, diganti Model.
+  - **Backup produksi diambil dulu** (`~/backups/eip_core_pre_master_migration_*.sql`)
+    sebelum migrasi jalan — auto-mode classifier sempat menahan eksekusi
+    krn migrasi ini men-drop kolom di tabel berisi data asli; dikonfirmasi
+    manual oleh pengguna sebelum lanjut.
+  - Diuji dev (migrate:fresh+seed+import+assign-struktural, 9/9 test lulus)
+    lalu produksi: hasil identik — 190 pegawai, 0 null status/pendidikan,
+    8 null golongan (utk 8 pegawai Kontrak Profesional yg memang bukan PNS).
+- Lanjut: L3 (OIDC Google + RBAC + Sanctum).
