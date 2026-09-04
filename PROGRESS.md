@@ -242,3 +242,35 @@ Dibuat: 2026-09-03
   Deploy ke produksi mulus (murni additive, tanpa drop kolom) — 190
   pegawai tidak terganggu, tabel baru kosong sesuai rencana.
 - Lanjut: L3 (OIDC Google + RBAC + Sanctum).
+
+### 2026-09-04 (lanjutan — L3: login Google OIDC + RBAC + Sanctum)
+- **Auth manusia**: `laravel/socialite`. EIP Core = OIDC client sendiri ke
+  Google Workspace. Login terbuka utk domain kampus (`ALLOWED_EMAIL_DOMAIN`),
+  **tapi hanya diloloskan masuk kalau email sudah terdaftar sbg pegawai** —
+  domain kampus sembarang tidak otomatis dapat akses (halaman "akun belum
+  terdaftar" kalau belum ada di master pegawai, sesuai docs/03).
+  `users`: `google_id`, `avatar`, `pegawai_id` (FK, di-resolve ulang tiap
+  login by email), `is_active`, `last_login_at`; `password` jadi nullable
+  (Google-only, tanpa password lokal).
+- **RBAC**: `roles` + `role_user` (custom, BUKAN spatie/laravel-permission —
+  blm perlu granular permission-per-aksi, cukup role→modul; lebih ringan
+  utk tim kecil meski docs/04 mengizinkan spatie). `php artisan role:assign
+  {email} {role}` — role manual per akun, belum ada UI admin.
+- **Service-to-service**: `service_clients` (1 record per app konsumen:
+  kepegawaian/gaji/aset/logistik/wa-blast), token Sanctum sendiri, **implement
+  `Authenticatable` manual** (guard Sanctum mensyaratkan kontrak ini utk
+  model non-`User`). `php artisan service-client:create {kode} {nama}` —
+  terbit token sekali tampil. `GET /api/v1/users/roles?email=` (auth:sanctum)
+  — resolve peran user by email utk dipanggil app lain.
+- Diuji: 8 test baru (domain ditolak/diloloskan, belum-terdaftar tidak
+  lolos, akun nonaktif ditolak, dashboard wajib login, role:assign+hasRole,
+  API roles 401/200) + smoke test manual (service-client:create → curl API
+  sungguhan → 200/401) + full pipeline import 190 pegawai tetap mulus.
+  19/19 test lulus, Pint bersih. Deploy produksi mulus (additive).
+- **BLOCKER: `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` nyata belum ada.**
+  Perlu dibuat di Google Cloud Console (terhubung ke Google Workspace UNS),
+  redirect URI `https://eip.mipa.uns.ac.id/auth/google/callback`. Semua
+  kode sudah siap — begitu kredensial ada, tinggal isi `.env` produksi,
+  login langsung bisa dites sungguhan.
+- Lanjut: Langkah 4 (API `/api/v1/` master pegawai/unit_kerja/jabatan/
+  organisasi utk dikonsumsi app lain) atau isi kredensial Google dulu.
