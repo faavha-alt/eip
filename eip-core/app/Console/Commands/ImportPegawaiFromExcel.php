@@ -229,13 +229,10 @@ class ImportPegawaiFromExcel extends Command
 
         $parent = $fakultas;
         if ($jenis === JenisUnitKerja::Subbagian) {
-            $parent = UnitKerja::firstOrCreate(
-                ['kode' => 'FMIPA_TU'],
-                ['organisasi_id' => $fakultas->organisasi_id, 'parent_id' => $fakultas->id, 'nama' => 'Bagian Tata Usaha FMIPA', 'jenis_unit' => JenisUnitKerja::Bagian, 'is_active' => true],
-            );
-            if ($parent->wasRecentlyCreated) {
-                $stats['unit_baru']++;
-            }
+            // Kode HARUS sama dgn yg dihasilkan slug('Bagian Tata Usaha FMIPA')
+            // di jalur normal di bawah, supaya tidak membuat 2 record berbeda
+            // utk unit yang sama.
+            $parent = $this->resolveUnitKerja('Bagian Tata Usaha FMIPA', $fakultas, $stats);
         }
 
         $kode = Str::upper(Str::slug($nama, '_'));
