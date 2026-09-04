@@ -118,5 +118,33 @@ Dibuat: 2026-09-03
   unique constraint, FK restrict on forceDelete) — 7/7 test proyek lulus,
   Pint bersih.
 - **Belum push** — remote git belum dikonfigurasi (ditanyakan ke pengguna).
-- Lanjut L3 (OIDC + RBAC) sesi berikutnya; kredensial MySQL/Redis produksi
-  menyusul setelah hosting siap.
+
+### 2026-09-04 (lanjutan — SSH server, GitHub, deploy produksi pertama)
+- **Server produksi**: SSH ke `eipmipa@eip.mipa.uns.ac.id:1103` (CloudPanel,
+  server sama dgn app lain: 203.6.149.150). Key dedicated `id_ed25519_eipmipa_web`
+  + alias `eip-web` di `~/.ssh/config` (mesin dev). PHP 8.4.23, MySQL 8.4
+  (Percona), Redis tersedia. Docroot tetap: `htdocs/eip.mipa.uns.ac.id/public`.
+- **GitHub**: remote `origin` dibuat → `git@github.com-eip:faavha-alt/eip.git`,
+  deploy key **write** dari mesin dev (`id_ed25519_eip_github`). Repo di-push
+  (5 commit riwayat desain + scaffold `eip-core`).
+- **Kredensial DB produksi diterima dari pengguna** (`eipmipa`/`eipmipa`,
+  MySQL `127.0.0.1:3306`) — dipasang di `.env` server, **tidak** disimpan di
+  git/chat berulang.
+- **Deploy pertama ke produksi**: transfer kode via tar+SSH (blm ada remote
+  saat itu) → `composer install --no-dev` → `.env` produksi (`APP_ENV=production`,
+  `APP_DEBUG=false`) → `php artisan migrate --force` (9 tabel, **tanpa seed** —
+  seeder demo tidak boleh masuk DB nyata) → `config/route/view:cache`.
+  Verifikasi: `https://eip.mipa.uns.ac.id` HTTP 200.
+- **Sambungkan server ke GitHub utk redeploy**: key GitHub KEDUA dibuat
+  **di server** (`id_ed25519_github_eip`, private key tidak pernah keluar
+  server), didaftarkan sbg deploy key **read-only** (terpisah dari key mesin
+  dev yang punya write access). Server clone penuh ke `~/repo`.
+- **`eip-core/deploy/deploy-eip-core.sh`** (di server, disalin dari repo):
+  krn `eip-core/` cuma subfolder monorepo (docroot CloudPanel sudah tetap ke
+  `htdocs/eip.mipa.uns.ac.id/`), redeploy = `git fetch`+`reset --hard` di
+  `~/repo`, lalu `rsync` isi `eip-core/` ke docroot (exclude `.env`, `vendor`,
+  cache/log), lalu composer install + migrate + cache. **Bukan** `git pull`
+  langsung di docroot. Sudah diuji end-to-end (idempotent, situs tetap 200).
+- **Cara redeploy selanjutnya**: push ke `master` dari mesin dev, lalu
+  `ssh eip-web '~/deploy-eip-core.sh'`.
+- Lanjut L3 (OIDC + RBAC) sesi berikutnya.
