@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // OIDC Google Workspace — SSO login (docs/03-autentikasi-sso.md).
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
 ];
