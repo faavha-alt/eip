@@ -69,6 +69,21 @@ class AuthDanRbacTest extends TestCase
         $this->assertNotNull($user->last_login_at);
     }
 
+    public function test_domain_staff_uns_ac_id_juga_diizinkan_bukan_cuma_mipa(): void
+    {
+        // Mayoritas data pegawai nyata FMIPA pakai @staff.uns.ac.id (181/189),
+        // bukan @mipa.uns.ac.id (cuma 2/189) — regresi bug yg sempat menolak
+        // hampir semua pegawai asli login.
+        $pegawai = Pegawai::factory()->create(['email' => 'dosen@staff.uns.ac.id']);
+        $this->mockGoogleUser('dosen@staff.uns.ac.id');
+
+        $response = $this->get(route('auth.google.callback'));
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertAuthenticated();
+        $this->assertSame($pegawai->id, User::where('email', 'dosen@staff.uns.ac.id')->value('pegawai_id'));
+    }
+
     public function test_akun_nonaktif_ditolak_meski_terdaftar_pegawai(): void
     {
         Pegawai::factory()->create(['email' => 'nonaktif@mipa.uns.ac.id']);

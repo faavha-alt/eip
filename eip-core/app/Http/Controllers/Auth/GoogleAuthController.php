@@ -31,16 +31,20 @@ class GoogleAuthController extends Controller
         try {
             $googleUser = Socialite::driver('google')->user();
         } catch (\Throwable $e) {
-            Log::warning('Login Google gagal: '.$e->getMessage());
+            Log::warning('Login Google gagal', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile().':'.$e->getLine(),
+            ]);
 
             return redirect()->route('login')->with('error', 'Login Google gagal, silakan coba lagi.');
         }
 
         $email = Str::lower($googleUser->getEmail());
         $domain = Str::after($email, '@');
-        $allowedDomain = config('eip.allowed_email_domain');
+        $allowedDomains = array_map(Str::lower(...), config('eip.allowed_email_domains', []));
 
-        if ($allowedDomain && $domain !== Str::lower($allowedDomain)) {
+        if ($allowedDomains !== [] && ! in_array($domain, $allowedDomains, true)) {
             return redirect()->route('login')->with('error', "Akun {$email} bukan domain kampus yang diizinkan.");
         }
 
