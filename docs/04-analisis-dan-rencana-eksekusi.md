@@ -216,8 +216,25 @@ dianalisis. **Koreksi penting** thd asumsi awal:
 - Keterbatasan tercatat: `jenis_kelamin` semua null (tidak ada di sumber),
   `gelar_depan/belakang` tidak diparse dari nama (nama disimpan utuh apa
   adanya), `no_hp` kosong di 183/190 (perlu pengumpulan terpisah utk WA
-  blast), 58 jabatan struktural perlu assignment unit manual.
-- **Belum dijalankan ke produksi** — menunggu konfirmasi pemilik data.
+  blast).
+- **Dijalankan ke produksi** (konfirmasi pemilik data 2026-09-04): hasil
+  identik dgn dev. File `.xlsx` sementara di server dihapus setelah data
+  masuk DB.
+- **Bug ditemukan saat verifikasi**: `pegawai:import` sempat membuat 2
+  record duplikat "Bagian Tata Usaha FMIPA" (kode auto-generate parent
+  Subbagian ≠ kode dari jalur normal/slug nama). Diperbaiki di kode
+  (`resolveUnitKerja()` dipanggil ulang, bukan hardcode kode terpisah) +
+  data existing di-merge manual (dev & produksi).
+- **`php artisan pegawai:assign-struktural {--dry-run}`**: assignment 58
+  jabatan struktural ke unit yg tepat, dikunci per orang via NIP + nama
+  jabatan persis (bbrp judul jabatan dipakai >1 orang, mis. "Kepala
+  Laboratorium Farmasi"). 3 orang pegang jabatan tingkat UNS (Wakil Rektor,
+  Kepala Subdirektorat) → unit baru "Rektorat Universitas Sebelas Maret",
+  terpisah dari hierarki FMIPA (bukan dipaksa masuk). tgl_mulai pakai
+  tanggal command dijalankan (recorded-at) — TMT jabatan struktural
+  sesungguhnya tidak ada di sumber. 58/58 ter-assign di dev & produksi.
+- **Status akhir produksi**: 190 pegawai, 21 unit_kerja, 89 jabatan, 289
+  penempatan (231 fungsional + 58 struktural).
 
 ### Langkah 3 — EIP Core: auth OIDC + RBAC
 - [ ] Socialite Google (OIDC), batasi `hd` / domain email kampus (BLOCKER #7)

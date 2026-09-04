@@ -168,6 +168,20 @@ Dibuat: 2026-09-03
   dicatat ke katalog tapi SENGAJA belum di-assign ke unit (perlu tinjauan
   manual, terlalu berisiko ditebak otomatis dari judul jabatan).
 - Kode di-commit ke git; **data (.xlsx, hasil import) TIDAK ikut git**.
-- **Belum dijalankan ke produksi** — menunggu konfirmasi pemilik data
-  (import PII nyata ke sistem live perlu persetujuan eksplisit).
-- Lanjut: konfirmasi import ke produksi, lalu L3 (OIDC + RBAC).
+- **Pengguna konfirmasi lanjut ke produksi.** Migrasi kolom baru + seed
+  UNS/FMIPA + import dijalankan di `eip.mipa.uns.ac.id`: hasil identik dgn
+  dev (190 pegawai, 89 jabatan, 231 penempatan). File .xlsx sementara di
+  server (`~/tmp/`, non-publik) dihapus setelah data masuk DB.
+- **Bug ditemukan & diperbaiki**: `pegawai:import` sempat membuat 2 record
+  duplikat "Bagian Tata Usaha FMIPA" (kode auto-generate parent Subbagian
+  tidak konsisten dgn jalur normal). Diperbaiki di kode + data existing
+  (dev & produksi) di-merge manual.
+- **`php artisan pegawai:assign-struktural {--dry-run}`** dibuat: assignment
+  58 jabatan struktural (Dekan/Wadek/Kaprodi/Ka.Lab/dst) ke unit yg tepat,
+  dikunci per orang via NIP + nama jabatan persis. 3 orang pegang jabatan
+  tingkat UNS (Wakil Rektor, Kepala Subdirektorat) → dibuatkan unit
+  "Rektorat Universitas Sebelas Maret" terpisah dari hierarki FMIPA.
+  58/58 ter-assign di dev & produksi.
+- **Status akhir produksi**: 190 pegawai, 21 unit_kerja, 89 jabatan, 289
+  penempatan (231 fungsional + 58 struktural). Situs tetap sehat (HTTP 200).
+- Lanjut: L3 (OIDC Google + RBAC + Sanctum).
