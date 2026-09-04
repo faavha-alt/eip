@@ -4,6 +4,8 @@
 # jadi kita sync isi eip-core/ ke situ, bukan git pull langsung di docroot.
 set -euo pipefail
 
+export PATH="$HOME/node/bin:$PATH"
+
 REPO="$HOME/repo"
 SITE="$HOME/htdocs/eip.mipa.uns.ac.id"
 
@@ -16,6 +18,7 @@ rsync -a --delete \
   --exclude='.git' \
   --exclude='vendor' \
   --exclude='node_modules' \
+  --exclude='public/build' \
   --exclude='storage/logs' \
   --exclude='storage/framework/cache' \
   --exclude='storage/framework/sessions' \
@@ -25,6 +28,8 @@ rsync -a --delete \
 
 cd "$SITE"
 composer install --no-dev --optimize-autoloader --no-interaction
+npm ci
+npm run build
 php artisan migrate --force
 php artisan config:cache
 php artisan route:cache

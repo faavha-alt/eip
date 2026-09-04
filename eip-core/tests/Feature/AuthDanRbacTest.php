@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Console\Commands\AssignRole;
 use App\Models\Pegawai;
+use App\Models\Penempatan;
 use App\Models\Role;
 use App\Models\ServiceClient;
+use App\Models\UnitKerja;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -99,6 +101,25 @@ class AuthDanRbacTest extends TestCase
     public function test_dashboard_wajib_login(): void
     {
         $this->get(route('dashboard'))->assertRedirect(route('login'));
+    }
+
+    public function test_dashboard_menampilkan_ringkasan_data_nyata(): void
+    {
+        $fakultas = UnitKerja::factory()->create(['nama' => 'Fakultas Contoh']);
+        Pegawai::factory()->count(3)->create();
+        Penempatan::factory()->create([
+            'unit_kerja_id' => $fakultas->id,
+            'is_posisi_utama' => true,
+        ]);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Total Pegawai');
+        $response->assertSee('Fakultas Contoh');
+        $response->assertSee((string) Pegawai::count());
     }
 
     public function test_role_manual_via_command_dan_helper_hasrole(): void
