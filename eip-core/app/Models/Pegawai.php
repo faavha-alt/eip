@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\Agama;
 use App\Enums\JenisKelamin;
 use App\Enums\JenisPegawai;
+use App\Enums\StatusPerkawinan;
 use Database\Factories\PegawaiFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
@@ -15,12 +17,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Table('pegawai')]
 #[Fillable([
-    'id_sumber', 'nip', 'nik', 'npwp', 'id_simpeg', 'no_seri_kepeg',
+    'id_sumber', 'nip', 'nik', 'npwp', 'nuptk', 'id_simpeg', 'no_seri_kepeg',
     'nama_lengkap', 'gelar_depan', 'gelar_belakang',
-    'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'email', 'no_hp',
+    'jenis_kelamin', 'agama', 'status_perkawinan',
+    'tempat_lahir', 'tanggal_lahir', 'alamat_domisili', 'email', 'no_hp',
     'status_kepegawaian_id', 'jenis_pegawai', 'pendidikan_terakhir_id',
     'golongan_ruang_id', 'tmt_golongan',
-    'foto', 'tanggal_masuk', 'tanggal_keluar', 'is_active',
+    'no_bpjs_kesehatan', 'no_bpjs_ketenagakerjaan', 'no_taspen',
+    'foto', 'tanggal_masuk', 'tmt_cpns', 'tmt_pns', 'tanggal_keluar', 'is_active',
 ])]
 class Pegawai extends Model
 {
@@ -36,9 +40,13 @@ class Pegawai extends Model
     {
         return [
             'jenis_kelamin' => JenisKelamin::class,
+            'agama' => Agama::class,
+            'status_perkawinan' => StatusPerkawinan::class,
             'jenis_pegawai' => JenisPegawai::class,
             'tanggal_lahir' => 'date',
             'tanggal_masuk' => 'date',
+            'tmt_cpns' => 'date',
+            'tmt_pns' => 'date',
             'tanggal_keluar' => 'date',
             'tmt_golongan' => 'date',
             'is_active' => 'boolean',
@@ -74,5 +82,29 @@ class Pegawai extends Model
     public function golonganRuang(): BelongsTo
     {
         return $this->belongsTo(GolonganRuang::class);
+    }
+
+    /** Histori jenjang pendidikan (S1 -> S2 -> S3, dst). */
+    public function riwayatPendidikan(): HasMany
+    {
+        return $this->hasMany(RiwayatPendidikan::class);
+    }
+
+    /** Histori kenaikan pangkat/golongan. */
+    public function riwayatPangkatGolongan(): HasMany
+    {
+        return $this->hasMany(RiwayatPangkatGolongan::class);
+    }
+
+    /** Pasangan/anak/tanggungan — dasar tunjangan keluarga (KP4). */
+    public function keluarga(): HasMany
+    {
+        return $this->hasMany(KeluargaPegawai::class);
+    }
+
+    /** Arsip dokumen resmi (SK, ijazah, dst). */
+    public function dokumen(): HasMany
+    {
+        return $this->hasMany(DokumenPegawai::class);
     }
 }

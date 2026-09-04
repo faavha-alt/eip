@@ -2,13 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Enums\HubunganKeluarga;
+use App\Enums\JenisDokumenPegawai;
 use App\Enums\JenisUnitKerja;
+use App\Models\DokumenPegawai;
 use App\Models\GolonganRuang;
 use App\Models\Jabatan;
+use App\Models\KeluargaPegawai;
 use App\Models\Organisasi;
 use App\Models\Pegawai;
 use App\Models\Pendidikan;
 use App\Models\Penempatan;
+use App\Models\RiwayatPangkatGolongan;
+use App\Models\RiwayatPendidikan;
 use App\Models\StatusKepegawaian;
 use App\Models\UnitKerja;
 use Illuminate\Database\QueryException;
@@ -116,5 +122,37 @@ class MasterDataSchemaTest extends TestCase
         $this->assertTrue($pegawai->statusKepegawaian->is($status));
         $this->assertTrue($pegawai->pendidikanTerakhir->is($pendidikan));
         $this->assertTrue($pegawai->golonganRuang->is($golongan));
+    }
+
+    public function test_riwayat_pendidikan_dan_pangkat_golongan_terhubung_ke_pegawai(): void
+    {
+        $pegawai = Pegawai::factory()->create();
+
+        $riwayatPendidikan = RiwayatPendidikan::factory()->create(['pegawai_id' => $pegawai->id]);
+        $riwayatPangkat = RiwayatPangkatGolongan::factory()->create(['pegawai_id' => $pegawai->id]);
+
+        $this->assertTrue($pegawai->riwayatPendidikan->contains($riwayatPendidikan));
+        $this->assertTrue($pegawai->riwayatPangkatGolongan->contains($riwayatPangkat));
+        $this->assertInstanceOf(Pendidikan::class, $riwayatPendidikan->pendidikan);
+        $this->assertInstanceOf(GolonganRuang::class, $riwayatPangkat->golonganRuang);
+    }
+
+    public function test_keluarga_pegawai_dasar_tunjangan_dan_dokumen_arsip(): void
+    {
+        $pegawai = Pegawai::factory()->create();
+
+        $anak = KeluargaPegawai::factory()->create([
+            'pegawai_id' => $pegawai->id,
+            'hubungan' => HubunganKeluarga::Anak,
+        ]);
+        $dokumen = DokumenPegawai::factory()->create([
+            'pegawai_id' => $pegawai->id,
+            'jenis' => JenisDokumenPegawai::SkPns,
+        ]);
+
+        $this->assertTrue($pegawai->keluarga->contains($anak));
+        $this->assertTrue($pegawai->dokumen->contains($dokumen));
+        $this->assertSame(HubunganKeluarga::Anak, $anak->hubungan);
+        $this->assertSame(JenisDokumenPegawai::SkPns, $dokumen->jenis);
     }
 }

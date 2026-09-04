@@ -2,8 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Enums\Agama;
 use App\Enums\JenisKelamin;
 use App\Enums\JenisPegawai;
+use App\Enums\StatusPerkawinan;
 use App\Models\GolonganRuang;
 use App\Models\Pegawai;
 use App\Models\Pendidikan;
@@ -29,6 +31,7 @@ class PegawaiFactory extends Factory
             'nip' => fake()->unique()->numerify('19##########0#1###'),
             'nik' => fake()->unique()->numerify('##################'),
             'npwp' => fake()->unique()->numerify('##.###.###.#-###.###'),
+            'nuptk' => fake()->unique()->numerify('################'),
             'id_simpeg' => fake()->unique()->numerify('SIMPEG#######'),
             'no_seri_kepeg' => fake()->unique()->bothify('?.######'),
             'nama_lengkap' => $jenisKelamin === JenisKelamin::LakiLaki
@@ -37,10 +40,16 @@ class PegawaiFactory extends Factory
             'gelar_depan' => null,
             'gelar_belakang' => null,
             'jenis_kelamin' => $jenisKelamin,
+            'agama' => fake()->randomElement(Agama::cases()),
+            'status_perkawinan' => fake()->randomElement(StatusPerkawinan::cases()),
             'tempat_lahir' => fake()->city(),
             'tanggal_lahir' => fake()->dateTimeBetween('-60 years', '-22 years'),
+            'alamat_domisili' => fake()->address(),
             'email' => fake()->unique()->safeEmail(),
             'no_hp' => fake()->numerify('08##########'),
+            'no_bpjs_kesehatan' => fake()->unique()->numerify('##############'),
+            'no_bpjs_ketenagakerjaan' => null,
+            'no_taspen' => fake()->unique()->numerify('#######'),
             // Master status/pendidikan/golongan diseed lewat migrasi; ambil
             // salah satu yg sudah ada drpd bikin baru tiap kali factory dipakai.
             'status_kepegawaian_id' => StatusKepegawaian::query()->inRandomOrder()->value('id')
@@ -53,6 +62,8 @@ class PegawaiFactory extends Factory
             'tmt_golongan' => fake()->dateTimeBetween('-10 years', '-1 years'),
             'foto' => null,
             'tanggal_masuk' => fake()->dateTimeBetween('-20 years', '-1 years'),
+            'tmt_cpns' => fake()->dateTimeBetween('-20 years', '-15 years'),
+            'tmt_pns' => fake()->dateTimeBetween('-14 years', '-10 years'),
             'tanggal_keluar' => null,
             'is_active' => true,
         ];
