@@ -211,4 +211,34 @@ Dibuat: 2026-09-03
   - Diuji dev (migrate:fresh+seed+import+assign-struktural, 9/9 test lulus)
     lalu produksi: hasil identik — 190 pegawai, 0 null status/pendidikan,
     8 null golongan (utk 8 pegawai Kontrak Profesional yg memang bukan PNS).
+
+### 2026-09-04 (lanjutan — riset referensi + lengkapi skema pegawai Tier 1+2)
+- **Riset mendalam** (WebSearch, disetujui pakai): BKN SIMPEG/SIASN & DRH
+  (Daftar Riwayat Hidup — riwayat pangkat/jabatan/pendidikan/keluarga,
+  bukan snapshot), SISTER Kemdiktisaintek (~34 kategori data dosen), KP4
+  tunjangan keluarga (10% pasangan + 2%/anak maks 2), HRIS umum.
+- **Temuan penting**: **NUPTK menggantikan NIDN/NIDK/NUP** sejak
+  pertengahan 2024 (regulasi Kemdiktisaintek) — identitas dosen yg
+  berlaku SEKARANG utk SISTER/PDDIKTI/sertifikasi/jabatan fungsional.
+  Kolom ini tidak ada sebelumnya & lebih relevan drpd NIDN yg sudah tak
+  berlaku, mengingat >70% pegawai FMIPA adalah dosen.
+- **Skema pegawai dilengkapi (Tier 1+2), SEMUA nullable/boleh kosong**
+  (disiapkan lebih dulu, data menyusul kapan tersedia — bukan wajib
+  sekarang):
+  - Kolom baru di `pegawai`: `nuptk`, `agama`, `status_perkawinan`
+    (enum tetap, bukan tabel master — beda dgn status_kepegawaian/
+    pendidikan/golongan yg memang dinamis), `alamat_domisili`,
+    `tmt_cpns`, `tmt_pns`, `no_bpjs_kesehatan`,
+    `no_bpjs_ketenagakerjaan`, `no_taspen`.
+  - 4 tabel baru (pola BKN: nilai TERKINI di `pegawai` + riwayat
+    terpisah, tiap perubahan = baris baru): `riwayat_pendidikan`,
+    `riwayat_pangkat_golongan`, `keluarga_pegawai` (dasar tunjangan
+    KP4 + rangkap kontak darurat), `dokumen_pegawai` (arsip SK/ijazah).
+  - **Sengaja di luar lingkup**: sertifikasi dosen + ID riset (Scopus/
+    SINTA/Google Scholar) — domain modul akademik masa depan, bukan
+    master kepegawaian; dicatat, tidak dibangun sekarang.
+- Diuji: migrate:fresh+seed+import 190 pegawai nyata+assign-struktural
+  tetap mulus (kolom baru semua null, wajar). 11/11 test lulus (2 baru).
+  Deploy ke produksi mulus (murni additive, tanpa drop kolom) — 190
+  pegawai tidak terganggu, tabel baru kosong sesuai rencana.
 - Lanjut: L3 (OIDC Google + RBAC + Sanctum).
