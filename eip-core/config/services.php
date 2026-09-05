@@ -42,4 +42,12 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    // API baca-saja wa-blast (wa-blast = acuan terakhir nomor HP pegawai).
+    // Kontrak: /ai/projects/wa-blast/docs/api-eip-inbound.md. Token dibuat
+    // & dikelola di wa-blast sendiri (/settings/eip), bukan token EIP.
+    'wablast' => [
+        'base_url' => env('WABLAST_BASE_URL'),
+        'inbound_token' => env('WABLAST_INBOUND_TOKEN'),
+    ],
+
 ];
