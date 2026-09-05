@@ -479,3 +479,56 @@ Dibuat: 2026-09-03
 - Lanjut: Perencanaan/Pengadaan/Akademik (app terpisah), atau shared
   library `eip/client`, atau integrasi sistem lama berikutnya (gaji/aset/
   logistik) dgn pola yang sama.
+
+### 2026-09-05 (lanjutan — audit kelengkapan master pegawai + tinjau 10 kasus SIMPEG)
+
+**Audit menyeluruh field master pegawai yg masih kosong**, atas permintaan
+pengguna ("apakah ada lagi yg perlu dikerjakan terkait master pegawai yg
+masih blm tersentuh"):
+
+- **Perlu perhatian**: 1 pegawai (Agnar Pradipa Daniswara) TANPA email sama
+  sekali → tidak bisa login sama sekali. 6 pegawai pakai Gmail pribadi
+  (bukan domain kampus) → tidak lolos `ALLOWED_EMAIL_DOMAINS` skrg, blm ada
+  keputusan kebijakan (minta akun kampus vs izinkan domain pribadi).
+- **Kosong total, blm ada sumber**: `nuptk` (100%, cuma relevan dosen),
+  `status_perkawinan`+`alamat_domisili` (100%, perlu form DRH/self-service),
+  `tmt_cpns`+`tmt_pns` (100%, tak ada di rekap SIMPEG yg dipunya),
+  `no_bpjs_kesehatan`+`no_bpjs_ketenagakerjaan`+`no_taspen` (100%, sumber
+  terpisah blm digali). **`no_hp` (96% kosong) TIDAK perlu dikejar di EIP
+  Core** — sudah diputuskan wa-blast jadi SSOT nomor HP (lihat sesi
+  integrasi pilot di atas).
+- **Fitur sudah jadi, data nol**: `keluarga_pegawai` & `dokumen_pegawai`
+  (0 baris) — butuh input individual, tak ada sumber bulk-import.
+- **Housekeeping teknis, blm urgent**: 3 jabatan struktural (termasuk
+  "Wakil Rektor Bidang Akademik dan Penelitian") dapat `level` approval
+  default (5) krn heuristik `levelFor()` di `ImportPegawaiFromExcel`
+  belum kenali pola "wakil rektor"/"kepala unit" — baru relevan saat app
+  Pengadaan pakai `level` utk alur approval.
+
+**Tinjau manual 10 kasus beda nilai "terkini" vs riwayat SIMPEG** (dari
+sync 2026-09-05 sblnya) — ditelusuri riwayat LENGKAP (bukan cuma nilai
+akhir) via tinker utk tiap orang, hasilnya CAMPURAN (bukan SIMPEG selalu
+benar):
+
+| Pegawai | Isu | Temuan | Rekomendasi |
+|---|---|---|---|
+| Fea Prihapsara (3296) | pendidikan S3 vs S2 | SIMPEG sama sekali tak py baris S3 | ⚠️ perlu verifikasi manual ke orangnya/departemen, JANGAN diubah dulu |
+| Fitrawan H. Pribadi (7736) | golongan III/b, TMT beda 1th | riwayat SIMPEG py 2 SK resmi beda nomor, sama2 III/b | update TMT ke 2025-06-01 |
+| Luthfiya K.P. (7926) | golongan III/b vs III/c | III/b TIDAK muncul di riwayat SIMPEG sama sekali | update ke III/c |
+| Budianto (373) | golongan II/c vs II/b | **SIMPEG sendiri py 2 baris nomor SK IDENTIK tp kode beda** (duplikat data internal SIMPEG) — progresi wajar dukung II/c | PERTAHANKAN II/c (SIMPEG yg salah) |
+| Aris Dwi Mahardi (941) | golongan TMT 2024 vs 2023 | pola kenaikan 4-tahunan SIMPEG konsisten, tak ada SK 2024 | update TMT ke 2023-04-01 |
+| Fora Falentina (2898) | pendidikan S1 vs D3 | golongan lompat II/d→III/a (pola khas penyesuaian ijazah) tp modul pendidikan SIMPEG blm update | PERTAHANKAN S1 (modul pendidikan SIMPEG tertinggal) |
+| Siti Baroroh Z.I. (2911) | pendidikan D3 vs S1 | SIMPEG py ijazah S1 2022 jelas | update ke S1 |
+| Heri Sukarno Putro (2917) | pendidikan S1 vs SMA | progresi golongan normal, tak ada lompatan | update ke SMA/SLTA |
+| Purwo Edi Minarno (7179) | pendidikan S2 vs S1 | progresi golongan biasa, tak ada lompatan khas S2 | update ke S1 |
+| Albertus Sindhu A.K. (7924) | golongan TMT 2025 vs 2026 | 2 SK resmi beda nomor, sama2 III/a | update TMT ke 2026-07-01 |
+
+**Keputusan pengguna: BELUM diterapkan ke database** — cukup dicatat dulu
+sbg backlog, tunggu konfirmasi lebih lanjut (mis. ke HR/departemen) sebelum
+menyentuh data. Kasus Budianto & Fora Falentina jadi bukti penting: SIMPEG
+TIDAK selalu lebih benar dari data lama — makanya desain `pegawai:sync-simpeg`
+sengaja tak pernah menimpa nilai "terkini" otomatis, cuma melaporkan.
+
+Lanjut: tunggu keputusan pengguna kapan mengeksekusi 7 update di atas (2
+dipertahankan, 1 perlu verifikasi eksternal); atau lanjut ke item audit
+lain (akses login 7 pegawai, form keluarga/dokumen, dst).
