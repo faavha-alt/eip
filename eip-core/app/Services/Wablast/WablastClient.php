@@ -30,9 +30,17 @@ class WablastClient
             }
 
             do {
-                $response = Http::withToken((string) config('services.wablast.inbound_token'))
-                    ->get($url, $query)
-                    ->throw();
+                $request = Http::withToken((string) config('services.wablast.inbound_token'));
+
+                if ($resolveIp = config('services.wablast.local_ip')) {
+                    $host = parse_url($url, PHP_URL_HOST);
+                    $port = parse_url($url, PHP_URL_PORT) ?? 443;
+                    if ($host) {
+                        $request = $request->withOptions(['curl' => [CURLOPT_RESOLVE => ["{$host}:{$port}:{$resolveIp}"]]]);
+                    }
+                }
+
+                $response = $request->get($url, $query)->throw();
                 $body = $response->json();
 
                 foreach ($body['data'] as $row) {

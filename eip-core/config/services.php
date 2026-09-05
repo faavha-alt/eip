@@ -48,6 +48,11 @@ return [
     'wablast' => [
         'base_url' => env('WABLAST_BASE_URL'),
         'inbound_token' => env('WABLAST_INBOUND_TOKEN'),
+        // wa-blast & EIP Core sehosting (203.6.149.150) — hairpin NAT: server
+        // gagal panggil domain publiknya sendiri lewat IP publik (timeout).
+        // Resolve paksa ke loopback (SNI/Host tetap benar). Kosongkan bila
+        // wa-blast pindah ke server lain. Pola sama spt EipClient di wa-blast.
+        'local_ip' => env('WABLAST_LOCAL_IP', '127.0.0.1'),
     ],
 
 ];
