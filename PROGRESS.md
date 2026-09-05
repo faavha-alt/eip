@@ -846,3 +846,54 @@ berjenjang (memang sengaja tak ada), kategori hierarkis.
 **Desain SELESAI, siap implementasi.** Belum ada kode/migration
 dijalankan — dokumen murni. Lanjut: mulai shared library `eip/client`
 (fondasi teknis wajib), atau langsung scaffold app `perencanaan/`.
+
+### 2026-09-05 (lanjutan — scaffold app Perencanaan dimulai)
+
+Diminta pengguna "lanjut langsung ke scaffold" (lewati shared library
+formal `eip/client` — konsisten dgn pola nyata yg sudah dipakai wa-blast
+2x: cukup service class per-app, bukan composer package terpisah).
+
+**Gap kecil ditemukan & diperbaiki di EIP Core dulu**: API `GET /api/v1/
+pegawai` blm bisa difilter by email — dibutuhkan app baru (Perencanaan)
+utk verifikasi login (cek pegawai terdaftar tanpa bergantung pada
+`users/roles?email=` yg cuma jalan kalau org itu SUDAH PERNAH login ke
+EIP Core sendiri). Ditambah filter `email`, 1 test baru, 52/52 test EIP
+Core lulus, dideploy ke produksi. Service-client token dibuat: `php
+artisan service-client:create perencanaan --abilities=master:read`.
+
+**Proyek baru `/ai/projects/perencanaan`** (repo Git terpisah, SIBLING
+dari `eip` — bukan subfolder, pola sama `wa-blast`): Laravel 13 +
+`laravel/boost` + Socialite. Scaffold awal sesuai
+`docs/05-rancangan-perencanaan.md`:
+
+- Migrasi: users+RBAC (`google_id`, `eip_pegawai_id`/`eip_unit_kerja_id`
+  — TANPA FK lokal, entitasnya di EIP Core), `kategori_kebutuhan`,
+  `periode_anggaran`, `pagu` (ledger/riwayat), `permintaan` (entitas
+  UNIFIED sesuai desain §2/§4.4).
+- `App\Services\Eip\EipClient` — baca pegawai (by email, utk auth) &
+  unit_kerja dari EIP Core API.
+- `App\Services\PaguService` — implementasi aturan kontrol pagu KUNCI
+  (docs/05 §5): `terkini()`, `terpakai()`, `sisa()`, `cukup()` (hard
+  block). 8 test khusus utk ini (revisi tengah periode, 2 jenis pagu
+  independen, permintaan dibatalkan tak dihitung, realisasi
+  menggantikan estimasi, dll).
+- `GoogleAuthController` — pola sama eip-core, TAPI verifikasi pegawai
+  via `EipClient` (API call), bukan tabel lokal (Perencanaan tak py
+  data pegawai sendiri).
+- **Bug kecil ditemukan & diperbaiki saat testing**: model
+  `KategoriKebutuhan`/`PeriodeAnggaran`/`Pagu`/`Permintaan` awalnya
+  tanpa atribut `#[Table(...)]` eksplisit — Eloquent salah menebak
+  pluralisasi kata Indonesia (`kategori_kebutuhan` → `kategori_
+  kebutuhans`). Diperbaiki mengikuti pola eip-core (semua tabel
+  Indonesia WAJIB `#[Table(...)]` eksplisit).
+- 20 test baru (skema, PaguService, alur login Google via mock
+  EipClient+Socialite) — 20/20 lulus, Pint bersih.
+
+**Belum ada**: controller/view CRUD (baru fondasi backend+auth),
+hosting/domain (`.env.example` masih placeholder
+`perencanaan.mipa.uns.ac.id`), GitHub remote (baru `git init` lokal,
+belum push kemana pun).
+
+Lanjut: bangun controller+view Permintaan (unified form utk kedua
+jenis) & Pagu (admin input/revisi), ATAU siapkan hosting+domain dulu
+spt pola eip-core/wa-blast, ATAU keduanya paralel.

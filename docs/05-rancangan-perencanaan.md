@@ -295,8 +295,12 @@ padanan lama) menyiapkan kolom referensi ke ID sistem lama (pola
 
 ## 11. Status & langkah berikut
 
-Desain selesai (2026-09-05) — siap lanjut ke implementasi. Langkah
-berikut: (a) mulai shared library `eip/client` sbg fondasi teknis (blm
-dibangun, dibutuhkan app Perencanaan utk baca master pegawai/unit_kerja
-dari EIP Core), (b) scaffold app `perencanaan/` (Laravel 13, pola sama
-eip-core/wa-blast: deploy.sh, OIDC Google, dst), (c) migration dari §4.
+Desain selesai (2026-09-05). **Scaffold dimulai (2026-09-05, sesi sama)**
+di `/ai/projects/perencanaan` (repo Git terpisah, sibling `eip`/`wa-blast`,
+BUKAN subfolder di sini): migrasi §4 lengkap, `EipClient` (baca-saja,
+bukan composer package terpisah — pola pragmatis sama spt wa-blast),
+`PaguService` (implementasi §5), auth Google OIDC + RBAC. 20 test lulus.
+Detail lengkap: `PROGRESS.md` di sini + `CLAUDE.md` proyek `perencanaan`.
+
+**Belum ada**: controller/view CRUD (Permintaan/Pagu/Kategori Kebutuhan),
+hosting/domain, GitHub remote. Ini langkah lanjutan berikutnya.
