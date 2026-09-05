@@ -381,3 +381,32 @@ Dibuat: 2026-09-03
 - Lanjut: isi riwayat_pendidikan/pangkat/keluarga/dokumen dari UI (msh
   cuma tampil, blm ada form input), ATAU integrasi pilot sistem lama,
   ATAU shared library `eip/client`, ATAU mulai app Perencanaan/Pengadaan.
+
+### 2026-09-05 (lanjutan — lengkapi CRUD Kepegawaian penuh)
+- Diminta pengguna "lanjut full semuanya": form tambah+hapus (soft delete)
+  utk `riwayat_pendidikan`, `riwayat_pangkat_golongan`, `keluarga_pegawai`,
+  `dokumen_pegawai` — sebelumnya cuma tampil "menyusul".
+- **Sinkronisasi otomatis nilai "terkini"**: tambah riwayat pendidikan/
+  pangkat baru otomatis update `pegawai.pendidikan_terakhir_id` /
+  `golongan_ruang_id`+`tmt_golongan` kalau jenjang/TMT baru ≥ yg tercatat
+  — riwayat simpan histori lengkap, pegawai simpan nilai terkini (pola
+  BKN, docs/04).
+- **Upload dokumen sungguhan**: disk `local` (`storage/app/private`,
+  TIDAK ter-symlink ke public — isinya PII: SK/ijazah/KTP), unduh lewat
+  route ber-otentikasi (bukan URL publik langsung).
+- **Bug kritis ditemukan SEBELUM sempat terjadi**: skrip deploy
+  (`rsync --delete`) belum exclude `storage/app/private`/`public` —
+  dokumen yg diupload user akan terhapus di redeploy berikutnya (source
+  git cuma py `.gitignore` placeholder). Diperbaiki di
+  `eip-core/deploy/deploy-eip-core.sh` sebelum ada yg sempat upload
+  dokumen sungguhan.
+- Diuji: 6 test baru (sinkron nilai terkini, soft-delete keluarga,
+  upload+unduh+hapus dokumen via `Storage::fake`, gerbang role) + render
+  manual show page dgn data asli 190 pegawai. 47/47 test proyek lulus.
+  Deploy produksi mulus, 190 pegawai tak terganggu.
+- **Modul Kepegawaian kini genuinely lengkap** (Fase 1 selesai): CRUD
+  pegawai + penempatan + riwayat pendidikan + riwayat pangkat/golongan +
+  keluarga + dokumen, semua dari UI.
+- Lanjut: Langkah 2 (integrasi pilot sistem lama), shared library
+  `eip/client` (kini relevan utk Perencanaan/Pengadaan/Akademik yg
+  genuinely terpisah), atau mulai app Perencanaan/Pengadaan.
