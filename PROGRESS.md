@@ -532,3 +532,17 @@ sengaja tak pernah menimpa nilai "terkini" otomatis, cuma melaporkan.
 Lanjut: tunggu keputusan pengguna kapan mengeksekusi 7 update di atas (2
 dipertahankan, 1 perlu verifikasi eksternal); atau lanjut ke item audit
 lain (akses login 7 pegawai, form keluarga/dokumen, dst).
+
+**Keputusan: sinkron balik nomor WA (wa-blast → EIP Core `no_hp`) DITUNDA.**
+Pengguna tanya "langsung update atau nanti kalau apinya jadi" — integrasi
+yg ada skrg (proyek terpisah `/ai/projects/wa-blast`, lihat PROGRESS.md di
+sana "Integrasi EIP Core 2026-09-05") SEARAH SAJA: EIP Core → wa-blast
+(baca nama/unit/status/gender), nomor WA sengaja tak pernah ditimpa balik.
+Belum ada endpoint apa pun di wa-blast utk baca kontak balik ke EIP Core.
+Opsi dibahas: (a) tunggu, bangun API resmi dulu baru dieksekusi — DIPILIH
+pengguna, (b) bangun API-nya sekarang, (c) jalan pintas query DB wa-blast
+langsung (ditolak — menyimpang dari pola arsitektur "integrasi lewat API,
+bukan DB langsung", CLAUDE.md §3.4). **Belum ada kerjaan yg dilakukan** —
+kalau nanti waktunya, pendekatannya: 1 endpoint kecil di wa-blast (pola
+sama `EipClient` yg sudah ada, dibalik) + 1 command tarik di EIP Core.
+Tidak mendesak, tak ada fitur EIP yg butuh `no_hp` sekarang.
