@@ -36,20 +36,19 @@
         <div class="space-y-1">
             <p class="px-4 text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Master Data</p>
 
-            <a href="{{ route('dashboard') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-slate-900 text-white font-semibold text-xs shadow-md shadow-slate-900/10 transition-all">
+            <a href="{{ route('dashboard') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-2xl {{ request()->routeIs('dashboard') ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60' }} font-semibold text-xs transition-all">
                 <span class="flex items-center gap-3">
-                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    <svg class="w-4 h-4 {{ request()->routeIs('dashboard') ? 'text-indigo-400' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                     Ringkasan
                 </span>
-                <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                @if (request()->routeIs('dashboard'))
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                @endif
             </a>
 
-            <a href="#" class="flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium text-xs transition-all">
-                <span class="flex items-center gap-3">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8zm6 4v-2a4 4 0 00-3-3.87m-9.13-9A4 4 0 105 5a4 4 0 002.87 3.87"/></svg>
-                    Direktori Pegawai
-                </span>
-                <span class="text-[10px] font-mono-num font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Segera</span>
+            <a href="{{ route('kepegawaian.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl {{ request()->routeIs('kepegawaian.*') ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60' }} font-medium text-xs transition-all">
+                <svg class="w-4 h-4 {{ request()->routeIs('kepegawaian.*') ? 'text-indigo-400' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8zm6 4v-2a4 4 0 00-3-3.87m-9.13-9A4 4 0 105 5a4 4 0 002.87 3.87"/></svg>
+                Direktori Pegawai
             </a>
 
             <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium text-xs transition-all">
