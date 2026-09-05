@@ -666,3 +666,55 @@ Lanjut: mulai shared library `eip/client` (fondasi wajib sblm app
 Perencanaan bisa jalan, krn Perencanaan sekarang di urutan pertama), atau
 rancang detail lingkup app Perencanaan lintas-domain dulu (data apa yg
 direncanakan — aset? BHP? keduanya? perlu didalami sblm desain skema).
+
+### 2026-09-05 (lanjutan — mulai gali requirement Pengadaan dari sistem lama)
+
+Sebelum desain skema Perencanaan/Pengadaan baru, ditelusuri kode NYATA
+sistem Aset lama (`/ai/projects/iams-fmipa-uns`, nama teknis "IAMS FMIPA
+UNS") & Persediaan (`/ai/projects/logistik`, "Logistik BHP") sbg sumber
+requirement — BUKAN utk dipindah kodenya (lihat keputusan build-baru di
+bawah), tapi aturan bisnisnya sudah teruji pemakaian nyata & bernilai.
+
+**Keputusan: bangun app Perencanaan/Pengadaan BARU, bukan pindahkan modul
+dari Aset.** Alasan konkret dari membaca kode `iams-fmipa-uns`: modul
+"Pengadaan" di situ (`ProcurementBatchController`+`RealizationController`)
+menyatu erat dgn pembuatan `Asset` (finalize() langsung insert baris
+Asset, satu DB/app yg sama) — memisahkannya jadi app independen (sesuai
+arsitektur baru: app terpisah, DB terpisah, komunikasi API) butuh bongkar-
+pasang yg risikonya setara nulis ulang, sementara sistemnya aktif dipakai
+produksi & baru di-hardening (race condition/keamanan, changelog
+2026-08-28). Tidak ada modul "Perencanaan" berdiri sendiri yg bisa
+diangkat — konsepnya tersebar di "Pengajuan Aset" (request bottom-up) &
+"Anggaran" (pagu Fakultas→Prodi).
+
+**Aturan bisnis yg diambil sbg requirement (bukan kode) dari iams:**
+vendor wajib di level Pengadaan (header), BUKAN per-item; anggaran 2
+lapis (Fakultas pagu total → Prodi alokasi); BAST berbasis UNIT (bisa
+gabung aset dari beberapa Pengadaan), bukan per-realisasi; kode aset
+otomatis + QR; role read-only utk non-admin discoped per-unit.
+
+**Data lama bisa diambil nanti** (dikonfirmasi user) — pola sama spt
+impor SIMPEG: skema baru disiapkan dgn kolom referensi ke ID sistem
+lama (pola `id_sumber`), ETL dijalankan pas Fase 5/6 (refactor Aset/
+Persediaan) tiba. Bukan penghalang mulai desain sekarang.
+
+**Diagnosis keluhan "bolak-balik" user**: BUKAN soal urutan proses
+bisnis, MELAINKAN navigasi antar halaman terpisah di UI (tiap resource
+= CRUD page sendiri: Vendor, Pengadaan, Barang Pengadaan terpisah-pisah,
+harus pindah menu tiap langkah). Modul **Aset & BAST sudah lumayan**
+(tak perlu didesain ulang) — fokus perbaikan UI di **Pengadaan** saja.
+Modul **Pengajuan Aset belum pernah dipakai** — bukan krn desainnya
+salah, tp krn **belum pernah disosialisasikan/dilatih ke pengguna**
+(alur/desainnya boleh dipakai lagi apa adanya, cuma perlu rollout).
+
+**Keputusan desain UI Pengadaan**: **wizard step-by-step**, TAPI tiap
+langkah bisa **disimpan sbg draft** (bukan harus selesai sekali duduk) —
+implikasi: butuh status `draft` di data Pengadaan, tiap langkah wizard
+persisten ke DB (bukan cuma state browser/sesi) spy bisa dilanjut kapan
+saja/dari device lain.
+
+**Belum final** — masih proses gali requirement, belum masuk desain
+skema/kode. Lanjut: dalami detail Perencanaan lintas-domain (gimana
+prosesnya, apa outputnya yg jadi input Pengadaan), atau lanjut detailkan
+wizard Pengadaan (langkah apa saja persisnya), atau mulai shared library
+`eip/client` dulu sbg fondasi teknis.
