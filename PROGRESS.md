@@ -951,3 +951,10 @@ dashboard eip-core supaya konsisten antar app EIP:
 
 Lanjut: siapkan hosting/domain + deploy.sh + GitHub remote, ATAU mulai
 app Pengadaan, ATAU dashboard sisa-pagu Perencanaan.
+
+**Nama produk app Perencanaan = STRAP** (Strategic Resource & Allocation
+Planning) — dipilih pengguna, kesan enterprise software + konotasi
+"mengencangkan/mengamankan" (pas dgn kontrol pagu). Diterapkan ke
+APP_NAME + brand UI. Folder/repo tetap `perencanaan` (istilah
+domain/roadmap). Idea nama pairing utk app Pengadaan nanti: mis.
+"PROCURA" (blm diputuskan).

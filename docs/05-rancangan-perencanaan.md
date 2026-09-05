@@ -1,5 +1,8 @@
-# EIP — Rancangan App Perencanaan
+# EIP — Rancangan App Perencanaan (STRAP)
 
+> **Nama produk: STRAP** — *Strategic Resource & Allocation Planning*.
+> Kode/folder/repo tetap `perencanaan` (istilah domain/roadmap).
+>
 > Dokumen desain app **Perencanaan** — aplikasi terpisah pertama yang dibangun
 > setelah EIP Core + Kepegawaian (lihat keputusan arsitektur `CLAUDE.md` §1/§3).
 > Status: **v1.0 — desain final sebelum mulai coding.** Semua pertanyaan
