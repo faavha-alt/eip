@@ -810,3 +810,39 @@ jadi permintaan.
 
 Lanjut: selesaikan hal terbuka di docs/05, atau mulai shared library
 `eip/client`, atau scaffold app `perencanaan/`.
+
+### 2026-09-05 (lanjutan — desain Perencanaan FINAL v1.0, semua hal terbuka diputuskan)
+
+Diminta pengguna: "design selengkap mungkin dan segampang mungkin proses
+bisnisnya sebelum mulai." `docs/05-rancangan-perencanaan.md` ditulis
+ulang total jadi **v1.0 final** (dari draft v0.1).
+
+**Penyederhanaan besar**: "Pengajuan Barang" dan "Laporan Kerusakan/
+Permintaan Perbaikan" ternyata **berbentuk identik** (ajukan bebas →
+dibatasi pagu → dieksekusi → disesuaikan kalau harga beda →
+direalisasikan) — DISATUKAN jadi SATU entitas `permintaan` dgn kolom
+`jenis` (`pengadaan_barang`|`pemeliharaan`) sbg pembeda, ganti 2 tabel
+paralel yg mirip-mirip. Begitu jg pagu: satu tabel `pagu` dgn kolom
+`jenis`, bukan `pagu_anggaran`+`pagu_pemeliharaan` terpisah. Skema
+migration-ready lengkap sekarang ada di docs/05 §4 (kategori_kebutuhan,
+periode_anggaran, pagu, permintaan — kolom & tipe detail).
+
+**Semua 8 hal terbuka dari draft v0.1 diputuskan** (docs/05 §8 tabel
+lengkap), ringkasnya: kategori_kebutuhan tetap milik Perencanaan (YAGNI,
+jgn naik ke EIP Core dulu), vendor milik Pengadaan, TANPA buffer
+toleransi pagu (mekanisme penyesuaian sudah cukup), notifikasi
+"Perlu Penyesuaian" pakai email+in-app dulu (bukan wa-blast, DITUNDA
+sbg enhancement), TANPA ambang nilai wajib-vendor-vs-swakelola utk
+pemeliharaan (bebas pilih), laporan kerusakan JADI SATU LANGKAH dgn
+permintaan perbaikan (bukan 2 tahap terpisah).
+
+Status permintaan (state machine) didetailkan: diajukan → dalam_proses
+→ perlu_penyesuaian → disesuaikan → direalisasikan (atau dibatalkan).
+
+Dicatat eksplisit yg SENGAJA di luar scope v1 (docs/05 §10) spy tetap
+sederhana: notifikasi wa-blast, ambang vendor/swakelola, approval
+berjenjang (memang sengaja tak ada), kategori hierarkis.
+
+**Desain SELESAI, siap implementasi.** Belum ada kode/migration
+dijalankan — dokumen murni. Lanjut: mulai shared library `eip/client`
+(fondasi teknis wajib), atau langsung scaffold app `perencanaan/`.

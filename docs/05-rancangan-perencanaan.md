@@ -2,219 +2,261 @@
 
 > Dokumen desain app **Perencanaan** — aplikasi terpisah pertama yang dibangun
 > setelah EIP Core + Kepegawaian (lihat keputusan arsitektur `CLAUDE.md` §1/§3).
-> Status: **Draft v0.1** — hasil requirement gathering, BELUM masuk desain
-> skema final/kode. Dicatat di sini supaya tidak hilang & jadi rujukan.
+> Status: **v1.0 — desain final sebelum mulai coding.** Semua pertanyaan
+> terbuka dari draft v0.1 sudah diputuskan (lihat §8). Prinsip desain:
+> **sesederhana mungkin** — skema pengadaan barang & pemeliharaan DISATUKAN
+> (§4), bukan dua struktur paralel yg mirip-mirip (lihat §2 alasannya).
 
 ---
 
 ## 1. Posisi dalam arsitektur
 
 **App terpisah** (Laravel 13 + MySQL + SPA sendiri, deploy sendiri), BUKAN
-modul EIP Core — dipertimbangkan eksplisit & ditolak (beda dgn Kepegawaian:
+modul EIP Core — dipertimbangkan eksplisit & ditolak. Beda dgn Kepegawaian:
 data Perencanaan genuinely belum ada di mana pun, dan menggabungkan berisiko
 bikin EIP Core jatuh ke masalah yg sama spt dikritik dari sistem Aset lama:
-"jadi satu semua, terlalu besar, tidak fokus"). Baca master pegawai/unit_kerja
+"jadi satu semua, terlalu besar, tidak fokus". Baca master pegawai/unit_kerja
 dari EIP Core API (lewat shared library `eip/client`, belum dibangun).
 
 **Lintas-domain** — BUKAN khusus aset. Menangani kebutuhan Aset (barang
-modal) maupun Persediaan/BHP (barang habis pakai), dan kemungkinan kategori
-lain di masa depan. Ini beda dari sistem Aset lama (`iams-fmipa-uns`) yang
-menyatukan perencanaan+pengadaan+pencatatan aset jadi satu — di arsitektur
+modal) maupun Persediaan/BHP (barang habis pakai), plus **Pemeliharaan &
+Perbaikan** (§4.4). Beda dari sistem Aset lama (`iams-fmipa-uns`) yang
+menyatukan perencanaan+pengadaan+pencatatan jadi satu app — di arsitektur
 baru, Perencanaan & Pengadaan lintas-domain, sementara Aset & Persediaan
 (Logistik BHP) diperamping jadi HANYA pencatatan (lihat CLAUDE.md §1).
 
 **Sumber requirement**: dibaca langsung kode nyata sistem Aset lama
 (`/ai/projects/iams-fmipa-uns`) & Persediaan (`/ai/projects/logistik`) —
 aturan bisnisnya sudah teruji pemakaian nyata & diambil sbg referensi
-(BUKAN kodenya yg dipindah — lihat §6 alasan build-baru).
+(BUKAN kodenya yg dipindah — lihat §7 alasan build-baru).
 
 ---
 
-## 2. Alur bisnis end-to-end
+## 2. Prinsip desain: satu skema utk semua jenis kebutuhan
+
+Requirement gathering awal (lihat `PROGRESS.md` 2026-09-05) menghasilkan
+dua alur yg TERLIHAT beda — "Pengajuan Barang" dan "Permintaan Perbaikan"
+— tapi keduanya ternyata **bentuknya identik**:
+
+1. Diajukan bebas oleh unit (tanpa approval gate)
+2. Dibatasi pagu (hard block, tidak boleh melebihi sisa pagu)
+3. Diproses/dieksekusi (Pengadaan, bisa via vendor)
+4. Harga riil bisa beda dari estimasi → disesuaikan oleh unit pengaju
+5. Direalisasikan
+
+Daripada bikin dua tabel & dua alur kode yg mirip-mirip (rawan duplikasi
+& tambal-sulam kalau salah satu berubah, yg lain ketinggalan), **desain
+ini SENGAJA menyatukan keduanya** jadi satu entitas `permintaan` dengan
+kolom `jenis` (`pengadaan_barang` | `pemeliharaan`) sbg pembeda. Begitu
+juga pagu: satu tabel `pagu` dengan kolom `jenis` yg sama, bukan dua
+tabel `pagu_anggaran`+`pagu_pemeliharaan` terpisah.
+
+**Keuntungan**: satu form, satu validasi, satu status machine, satu
+halaman daftar (bisa difilter per jenis) — sesuai permintaan pengguna
+"desain selengkap mungkin dan segampang mungkin". Kalau nanti muncul
+jenis kebutuhan ketiga (misal "Jasa" atau "Sewa"), tinggal tambah value
+enum `jenis`, TIDAK perlu tabel/kode baru.
+
+---
+
+## 3. Alur bisnis end-to-end (final, unified)
 
 ```
-Prodi ajukan kebutuhan (Pengajuan)
-        │  bebas, TANPA approval, TAPI dibatasi pagu (hard block)
+Unit ajukan kebutuhan (Permintaan, jenis: pengadaan_barang ATAU pemeliharaan)
+        │  bebas, TANPA approval gate
+        │  TAPI: hard block thd sisa pagu jenis yg sesuai (§5)
         ▼
-[PERENCANAAN]  Pengajuan terkumpul per unit/periode/kategori
+[PERENCANAAN]  Permintaan terkumpul per unit/periode/kategori/jenis
         │  dikelompokkan per kategori → tentukan vendor yg relevan
         ▼
-[PENGADAAN]  Proses beli (wizard, per kategori → vendor)
-        │  harga riil dari vendor didapat
+[PENGADAAN]  Eksekusi (wizard, draft per langkah — keputusan sblmnya)
+        │  - pengadaan_barang: pilih vendor, beli
+        │  - pemeliharaan: pilih vendor ATAU swakelola (bebas, tanpa
+        │    ambang nilai — keputusan simplifikasi, lihat §8)
+        │  harga/biaya riil didapat
         ▼
-   Harga beda dari estimasi? ──ya──▶ status "Perlu Penyesuaian"
-        │ tidak                           │
-        │                    Prodi sendiri menyesuaikan jumlah/harga
-        │                    (tetap tunduk kontrol pagu)
-        ▼                                 │
-   Direalisasikan ◀────────────────────────┘
+   Beda dari estimasi? ──ya──▶ status "Perlu Penyesuaian"
+        │ tidak                     │
+        │              Unit pengaju SENDIRI yang menyesuaikan
+        │              jumlah/harga (tetap tunduk kontrol pagu §5)
+        ▼                           │
+   Direalisasikan ◀──────────────────┘
         │
         ▼
-[ASET / PERSEDIAAN]  Dicatat sbg barang baru (registry / stok masuk)
+[ASET / PERSEDIAAN]  pengadaan_barang → dicatat sbg barang baru (registry/stok)
+                      pemeliharaan → dicatat sbg riwayat perbaikan aset terkait
 ```
 
-Pengajuan **TIDAK melalui approval gate** — prodi bebas mengajukan barang
-apa saja. Kontrolnya murni di sisi pagu (lihat §4), bukan di sisi konten
-pengajuan.
+**Tidak ada approval gate** di tahap pengajuan — unit bebas mengajukan
+apa saja. Satu-satunya kontrol adalah pagu (§5), bukan konten permintaan.
 
 ---
 
-## 3. Entitas inti (draft, belum final)
+## 4. Skema data (final, siap-migrasi)
 
-### `kategori_kebutuhan` (master, admin-manageable)
+### 4.1 `kategori_kebutuhan` (master, admin-manageable)
 
-Pola sama seperti `golongan_ruang`/`pendidikan` di EIP Core: tabel
-kode+nama sederhana, bukan enum hardcode — supaya bisa ditambah admin
-tanpa deploy kode baru.
+Pola sama seperti `golongan_ruang`/`pendidikan` di EIP Core — tabel
+kode+nama, bukan enum hardcode, supaya admin bisa tambah tanpa deploy.
+**Milik Perencanaan** (keputusan final §8 — tidak perlu naik jadi master
+lintas-domain EIP Core kecuali nanti terbukti dipakai modul lain).
 
-Contoh isi awal (dikonfirmasi pengguna, "paling umum"): **Alat Lab**,
-**Komputer**, **Mebeler**. Extensible.
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | bigint PK | |
+| `kode` | string, unique | |
+| `nama` | string | Contoh awal: Alat Lab, Komputer, Mebeler (extensible) |
+| `is_active` | boolean, default true | |
+| timestamps + soft deletes | | |
 
-Dipakai dua kali: (1) mengklasifikasi Pengajuan, (2) di Pengadaan untuk
-menentukan vendor yang relevan per kategori. Karena dipakai lintas app
-(Perencanaan & Pengadaan), taksonomi ini perlu jadi **referensi bersama**
-— opsi: (a) tabel master di Perencanaan, dibaca Pengadaan via API
-(Perencanaan "memiliki" konsep ini krn muncul pertama di alur), atau
-(b) naik jadi master lintas-domain di EIP Core (spt `unit_kerja`/
-`jabatan`) kalau ternyata dipakai modul lain juga nanti. **Belum
-diputuskan** — default sementara: opsi (a), Perencanaan yang punya.
+Dipakai utk: (1) klasifikasi tiap `permintaan`, (2) routing vendor yg
+relevan saat Pengadaan (satu taksonomi dipakai kedua jenis kebutuhan —
+kategori "Alat Lab" bisa relevan baik utk beli baru maupun servis).
 
-### `periode_anggaran`
+### 4.2 `periode_anggaran`
 
-Mis. "Tahun Anggaran 2027". Wadah waktu tempat pagu & pengajuan berlaku.
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | bigint PK | |
+| `nama` | string | Mis. "Tahun Anggaran 2027" |
+| `tanggal_mulai`, `tanggal_selesai` | date | |
+| `is_active` | boolean | Hanya 1 periode aktif pada satu waktu |
+| timestamps + soft deletes | | |
 
-### `pagu_anggaran` (ledger/riwayat, BUKAN nilai tunggal)
+### 4.3 `pagu` (ledger/riwayat — UNIFIED utk kedua jenis)
 
 **Pola sama seperti `riwayat_pangkat_golongan` di EIP Core**: pagu BISA
-DIREVISI DI TENGAH PERIODE (dikonfirmasi pengguna) — jadi bukan satu
-kolom nilai yang di-update di tempat, tapi ledger append-only. "Pagu
-saat ini" = baris terbaru per (unit_kerja, periode).
+DIREVISI DI TENGAH PERIODE (dikonfirmasi pengguna) — bukan satu kolom
+nilai yg di-update di tempat, tapi ledger append-only. "Pagu saat ini"
+= baris terbaru per (unit_kerja, periode, jenis).
 
-| Kolom | Keterangan |
-|---|---|
-| `unit_kerja_id` | Referensi ke EIP Core (via API/cache lokal) — **termasuk Fakultas sendiri**, bukan cuma prodi (dikonfirmasi pengguna: pagu dibagi ke semua unit penerima, Fakultas salah satunya) |
-| `periode_anggaran_id` | |
-| `nominal` | Pagu berlaku sejak revisi ini |
-| `berlaku_sejak` | Tanggal efektif revisi |
-| `ditetapkan_oleh` | Admin yang input (pagu ditentukan langsung Fakultas, diinput admin — TANPA alur pengajuan/approval tersendiri utk penetapan pagu itu sendiri) |
-| `keterangan` | Alasan revisi (opsional) |
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | bigint PK | |
+| `unit_kerja_id` | bigint | Referensi ke EIP Core (id disalin lokal via API, bukan FK lintas-DB) — **termasuk Fakultas sendiri**, bukan cuma prodi (dikonfirmasi: pagu dibagi ke semua unit penerima) |
+| `periode_anggaran_id` | bigint FK | |
+| `jenis` | enum: `pengadaan_barang`, `pemeliharaan` | **Dua pool independen** — belanja pemeliharaan & belanja modal adalah jenis anggaran berbeda di institusi pemerintah, tidak boleh saling memotong |
+| `nominal` | decimal(15,2) | Pagu berlaku sejak baris ini |
+| `berlaku_sejak` | date | Tanggal efektif revisi |
+| `ditetapkan_oleh` | bigint (user id) | Pagu ditentukan langsung Fakultas, diinput admin — TANPA alur approval tersendiri utk penetapan pagu |
+| `keterangan` | text, nullable | Alasan revisi |
+| timestamps + soft deletes | | |
 
-Sisa pagu unit = pagu terkini (baris terbaru) − total nilai Pengajuan
-aktif (blm dibatalkan) milik unit itu dlm periode berjalan.
+Index: `(unit_kerja_id, periode_anggaran_id, jenis, berlaku_sejak)` —
+"pagu terkini" = `ORDER BY berlaku_sejak DESC LIMIT 1` per kombinasi.
 
-### `pengajuan`
+### 4.4 `permintaan` (UNIFIED — pengganti "Pengajuan Barang" + "Laporan Kerusakan/Permintaan Perbaikan")
 
-| Kolom | Keterangan |
-|---|---|
-| `unit_kerja_id` | Prodi/unit pengaju |
-| `periode_anggaran_id` | |
-| `kategori_kebutuhan_id` | Utk routing vendor nanti di Pengadaan |
-| `nama_barang`, `jumlah`, `estimasi_harga_satuan` | Diisi bebas oleh prodi |
-| `status` | `diajukan` → `dalam_pengadaan` → `perlu_penyesuaian` (kalau harga riil beda) → `disesuaikan` → `direalisasikan`. Kemungkinan jg `dibatalkan`. |
-| `harga_realisasi` | Diisi setelah dapat harga riil dari Pengadaan (beda kolom dari estimasi, spy ada jejak "rencana vs realisasi") |
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | bigint PK | |
+| `unit_kerja_id` | bigint | Unit pengaju |
+| `periode_anggaran_id` | bigint FK | |
+| `jenis` | enum: `pengadaan_barang`, `pemeliharaan` | Menentukan pool pagu mana yg dicek (§5) |
+| `kategori_kebutuhan_id` | bigint FK | |
+| `diajukan_oleh` | bigint (pegawai id, dari EIP Core) | **Siapa saja pegawai di unit boleh mengajukan** (dikonfirmasi, khusus jenis pemeliharaan — berlaku sama utk konsistensi) |
+| `nama_kebutuhan` | string | Nama barang, ATAU ringkasan kerusakan/kebutuhan servis |
+| `deskripsi` | text, nullable | Detail tambahan/deskripsi kerusakan |
+| `aset_terkait_id` | bigint, nullable | Hanya relevan `jenis=pemeliharaan` — referensi ke Aset yg mau diperbaiki (via API ke sistem Aset, nullable krn aset kadang belum tercatat resmi) |
+| `foto` | string (path), nullable | Bukti kondisi/kerusakan, opsional |
+| `jumlah` | integer, default 1 | |
+| `estimasi_harga_satuan` | decimal(15,2) | |
+| `estimasi_total` | decimal(15,2) | `jumlah × estimasi_harga_satuan`, disimpan (bukan dihitung on-the-fly) supaya histori "rencana awal" tidak berubah kalau harga satuan diedit |
+| `status` | enum (lihat §6) | |
+| `vendor_id` | bigint, nullable | Diisi di tahap Pengadaan (nullable krn Perencanaan tak "punya" vendor — §8) — nullable jg permanen kalau `jenis=pemeliharaan` dieksekusi swakelola |
+| `harga_realisasi_satuan`, `total_realisasi` | decimal(15,2), nullable | Diisi setelah harga riil didapat |
+| timestamps + soft deletes | | |
 
-**Bisa diedit bebas** oleh prodi selama status masih `diajukan` (belum
-masuk proses Pengadaan). Setelah `perlu_penyesuaian`, **prodi sendiri**
-yang menyesuaikan jumlah/harga (dikonfirmasi pengguna — bukan admin
-pengadaan atas nama prodi), tetap tunduk validasi pagu (§4).
+**Kolom referensi data lama** (utk ETL nanti, pola `id_sumber` spt SIMPEG):
+tidak relevan di sini krn `permintaan` adalah data BARU (tak ada padanan
+historis di sistem lama utk diimpor) — beda dgn Aset/Persediaan yg akan
+diimpor datanya (lihat §7).
+
+**Nilai "terpakai" dari pagu** per baris = `COALESCE(total_realisasi,
+estimasi_total)` — selalu pakai angka paling akurat yg diketahui saat itu.
 
 ---
 
-## 4. Aturan kontrol pagu (KUNCI — hard constraint)
+## 5. Aturan kontrol pagu (KUNCI — hard constraint)
 
 **Dikonfirmasi eksplisit oleh pengguna**: "Kontrol pagu otomatis,
 pengajuan tidak bisa melebihi pagu. Kalau pagu habis sudah tidak bisa
-menambah barang."
+menambah barang." Berlaku sama utk kedua `jenis`.
 
-- Validasi **real-time, server-side**, saat create/update Pengajuan:
-  `total nilai pengajuan aktif unit (termasuk yg baru/diubah) ≤ sisa pagu
-  unit tsb pada periode berjalan`. Gagal validasi → ditolak (bukan cuma
-  peringatan).
-- Berlaku juga saat **penyesuaian** pasca-harga-riil (§3) — kalau harga
-  riil naik dan bikin melebihi pagu, prodi harus mengurangi jumlah/ganti
-  barang supaya kembali pas, bukan otomatis ditolak dari sistem
-  Pengadaan (perlu dipikirkan UX-nya: prodi diberi tahu — kemungkinan via
-  wa-blast yg sudah tersambung — utk masuk & menyesuaikan).
-- **Belum diputuskan**: apakah nilai yg dipakai utk cek pagu adalah
-  `jumlah × estimasi_harga_satuan` (saat diajukan) atau ada toleransi
-  (mis. buffer %) mengingat estimasi harga bisa meleset. Default
-  sementara: pakai estimasi apa adanya, ketat.
+- Validasi **real-time, server-side**, saat create/update `permintaan`:
+  ```
+  SUM(nilai_terpakai) semua permintaan aktif (blm dibatalkan)
+    milik (unit_kerja, periode, jenis yg sama) TERMASUK yg baru/diubah
+    ≤ pagu terkini (unit_kerja, periode, jenis)
+  ```
+  Gagal validasi → **ditolak** (bukan cuma peringatan), pesan tampilkan
+  sisa pagu yg masih ada supaya user tahu batasnya.
+- Berlaku juga saat **penyesuaian** pasca-harga-riil — kalau harga riil
+  naik dan bikin melebihi pagu, unit pengaju harus mengurangi jumlah
+  atau membatalkan sebagian supaya kembali pas.
+- **Tanpa buffer/toleransi** (keputusan simplifikasi, §8) — validasi
+  ketat pakai angka apa adanya. Toleransi terhadap harga yg meleset
+  sudah tertangani lewat mekanisme "penyesuaian" itu sendiri, tak perlu
+  buffer % tambahan yg bikin aturan lebih rumit.
 
 ---
 
-## 5. Keterkaitan dengan Pengadaan (app terpisah lain)
+## 6. Status `permintaan` (state machine)
 
-- **Kategori kebutuhan** dipakai Pengadaan utk mengelompokkan Pengajuan
-  ke vendor yg sesuai (tiap vendor biasa spesialis kategori tertentu).
-- **Vendor** kemungkinan besar tetap "milik" Pengadaan (bukan
-  Perencanaan) — sesuai posisi dalam alur (vendor baru relevan saat
-  eksekusi beli, bukan saat merencanakan kebutuhan). Perlu dikonfirmasi
-  saat desain Pengadaan dimulai.
+```
+diajukan ──▶ dalam_proses ──▶ perlu_penyesuaian ──▶ disesuaikan ──▶ direalisasikan
+   │                                                                      ▲
+   └──▶ dibatalkan                                          (siklus ulang jika
+                                                              masih ada gap harga)
+```
+
+- `diajukan`: baru dibuat unit, **bisa diedit bebas** oleh pengaju.
+- `dalam_proses`: sudah diambil masuk siklus Pengadaan (vendor
+  dipilih/proses jalan), TIDAK bisa diedit langsung oleh unit lagi.
+- `perlu_penyesuaian`: harga riil beda dari estimasi → unit pengaju
+  diberi notifikasi (§8 — email/in-app utk v1) & masuk lagi mengubah
+  jumlah/harga.
+- `disesuaikan`: unit sudah menyesuaikan, siap dieksekusi ulang/lanjut.
+- `direalisasikan`: selesai, barang/perbaikan sudah didapat — trigger
+  pencatatan ke Aset (barang baru) atau riwayat perbaikan (pemeliharaan).
+- `dibatalkan`: unit atau admin membatalkan sebelum realisasi (mis. utk
+  menyesuaikan diri ke sisa pagu).
+
+---
+
+## 7. Keterkaitan dengan Pengadaan (app terpisah lain)
+
+- **Kategori kebutuhan** dipakai Pengadaan utk mengelompokkan
+  `permintaan` ke vendor yg sesuai (tiap vendor biasa spesialis
+  kategori tertentu) — dibaca via API dari Perencanaan.
+- **Vendor MILIK Pengadaan** (keputusan final, §8) — Perencanaan tidak
+  menyimpan data vendor sendiri, cuma `vendor_id` (nullable) di
+  `permintaan` yg diisi balik dari Pengadaan setelah vendor dipilih.
+- Utk `jenis=pemeliharaan`: vendor OPSIONAL (swakelola diperbolehkan
+  bebas, tanpa ambang nilai — keputusan simplifikasi §8).
 - **UI Pengadaan**: wizard step-by-step dgn draft per langkah (keputusan
-  sesi sebelumnya, lihat PROGRESS.md 2026-09-05).
-- Integrasi antar app (Perencanaan ↔ Pengadaan): API + event/webhook
-  (pola CLAUDE.md §3.4), BUKAN FK lintas-DB — detail kontrak API belum
-  dirancang.
+  sesi sebelumnya).
+- Integrasi antar app: API + event/webhook (pola CLAUDE.md §3.4), BUKAN
+  FK lintas-DB — kontrak API detail dirancang saat mulai app Pengadaan.
 
 ---
 
-## 6. Modul Pemeliharaan & Perbaikan (tambahan, 2026-09-05)
+## 8. Keputusan final atas hal yang sebelumnya terbuka
 
-Selama ini **belum tercatat sama sekali** di sistem lama — celah nyata yg
-diangkat pengguna. Istilah umumnya di manajemen aset: *Maintenance
-Management* (CMMS). Beda dari alur Pengadaan (§2-5) yg urusannya barang
-BARU, modul ini urusannya **menjaga & memperbaiki yang sudah ada**.
-
-**Kenapa perlu pagu terpisah**: di anggaran institusi pemerintah,
-belanja pemeliharaan adalah **jenis anggaran berbeda** dari belanja
-modal/pengadaan barang baru — tidak bisa dicampur dalam satu pool.
-Dikonfirmasi pengguna: **pagu terpisah** dari Pagu Pengadaan.
-
-### Alur
-
-```
-Laporan Kerusakan (SIAPA SAJA pegawai di unit boleh lapor — dikonfirmasi,
-                    bukan cuma admin/penanggung jawab aset)
-        │  barang/aset apa, di mana, kerusakan apa, foto (opsional)
-        ▼
-Permintaan Perbaikan/Pemeliharaan (ditindaklanjuti dari laporan)
-        │  dibatasi Pagu Pemeliharaan (pool TERPISAH, pola ledger sama
-        │  spt §3 — bisa direvisi tengah periode)
-        ▼
-[PENGADAAN]  Pelaksanaan — BISA lewat vendor/teknisi eksternal (dikonfirmasi,
-        │    mirip alur beli barang: pilih vendor, dapat harga/biaya riil)
-        │    — swakelola (dikerjakan sendiri tanpa vendor) kemungkinan jg
-        │    ada sbg jalur alternatif, blm dikonfirmasi detail
-        ▼
-Biaya realisasi didapat → sisa Pagu Pemeliharaan ter-update REAL-TIME
-        │  (tracking "abis berapa, tinggal berapa" — kebutuhan eksplisit
-        │  pengguna: "saat pelaksanaan jg abis berapa saat jalan kita
-        │  bisa melihat dana perbaikan tinggal berapa")
-        ▼
-Selesai — dicatat sbg riwayat perbaikan (berguna jg utk histori kondisi
-aset, relevan ke modul pencatatan Aset yg diperamping nanti)
-```
-
-### Entitas tambahan (draft)
-
-| Entitas | Keterangan |
+| Pertanyaan (draft v0.1) | Keputusan final |
 |---|---|
-| `pagu_pemeliharaan` | Ledger terpisah dari `pagu_anggaran` (§3) — struktur sama: unit_kerja_id, periode_anggaran_id, nominal, berlaku_sejak, ditetapkan_oleh. Pool anggaran BEDA, tidak saling memotong dgn pagu pengadaan barang. |
-| `laporan_kerusakan` | pelapor (pegawai_id, siapapun di unit), unit_kerja_id, aset terkait (referensi ke Aset kalau sudah tercatat, atau deskripsi bebas kalau belum), deskripsi, foto, tingkat urgensi, status (dilaporkan/ditindaklanjuti/selesai/dibatalkan) |
-| `permintaan_perbaikan` | diturunkan dari `laporan_kerusakan` (atau diajukan langsung), estimasi_biaya, vendor_id (nullable — swakelola tak butuh vendor), biaya_realisasi, status (pola sama Pengajuan barang: diajukan→dalam_pelaksanaan→perlu_penyesuaian→direalisasikan) |
-
-**Kontrol pagu**: sama hard-block spt §4, tapi divalidasi terhadap
-`pagu_pemeliharaan`, bukan `pagu_anggaran` — dua pool independen per
-unit per periode.
-
-**Belum dikonfirmasi detail**: kapan swakelola dipakai vs wajib vendor
-(mis. ambang nilai tertentu?), apakah `laporan_kerusakan` wajib official
-dulu sebelum jadi `permintaan_perbaikan` atau bisa langsung diajukan
-tanpa laporan formal.
+| Kepemilikan `kategori_kebutuhan` | **Perencanaan.** Tidak perlu naik ke EIP Core sampai terbukti dipakai modul lain (YAGNI). |
+| Kepemilikan `vendor` | **Pengadaan.** Perencanaan cuma simpan `vendor_id` nullable. |
+| Toleransi/buffer validasi pagu | **Tidak ada buffer.** Ketat apa adanya — mekanisme penyesuaian sudah menangani harga yg meleset, buffer tambahan cuma menambah kerumitan aturan tanpa manfaat jelas. |
+| Notifikasi "Perlu Penyesuaian" | **v1: email + notifikasi in-app** (Laravel Notification standar). Integrasi wa-blast DITUNDA sbg enhancement lanjutan — Perencanaan belum py jalur ke wa-blast sama sekali, bikin baru sekarang menambah scope sblm app-nya sendiri jalan. |
+| Anggaran genuinely milik Perencanaan? | **Ya, sepenuhnya** — termasuk `jenis=pemeliharaan`. Satu app pemilik seluruh siklus anggaran-kebutuhan lintas-domain. |
+| Skema DB detail | **Selesai — lihat §4.** Siap jadi migration. |
+| Pemeliharaan: ambang nilai wajib-vendor vs swakelola | **Tidak ada ambang.** Vendor opsional bebas dipilih atau tidak (swakelola) — keputusan simplifikasi, bisa ditambah aturan nanti kalau ternyata dibutuhkan setelah dipakai nyata. |
+| Laporan kerusakan: tahap formal terpisah atau langsung? | **Digabung jadi SATU langkah** — `permintaan` dgn `jenis=pemeliharaan` BERFUNGSI SEKALIGUS sbg laporan kerusakan (status `diajukan` = "baru dilaporkan"). Tidak ada tabel/tahap terpisah `laporan_kerusakan` lagi (disatukan sesuai prinsip §2). |
 
 ---
 
-## 7. Kenapa build baru, bukan pindah dari sistem Aset lama
+## 9. Kenapa build baru, bukan pindah dari sistem Aset lama
 
 Dibaca langsung kode `iams-fmipa-uns`: modul "Pengadaan" di situ
 (`ProcurementBatchController` + `RealizationController`) menyatu erat
@@ -224,41 +266,37 @@ setara nulis ulang, sementara sistemnya aktif dipakai produksi. **Tidak
 ada modul "Perencanaan" berdiri sendiri** di sana yg bisa diangkat —
 konsepnya tersebar di "Pengajuan Aset" (request bottom-up, ternyata belum
 pernah dipakai krn belum disosialisasikan, bukan salah desain) & "Anggaran"
-(pagu Fakultas→Prodi, model 2-lapis kaku — direvisi di rancangan ini jadi
-lebih fleksibel: pagu ke semua unit penerima termasuk Fakultas sendiri).
+(pagu Fakultas→Prodi, model 2-lapis kaku — dirombak di rancangan ini jadi
+lebih fleksibel & lebih sederhana: satu tabel `pagu` per unit/jenis).
 
 Aturan bisnis yg **diambil sbg referensi** (bukan kode): vendor wajib di
 level header pengadaan (bukan per-item), BAST berbasis unit (bisa gabung
 aset dari beberapa pengadaan), kode aset otomatis+QR.
 
-**Data lama bisa diimpor nanti** (dikonfirmasi pengguna) — skema di atas
-sebaiknya menyiapkan kolom referensi ke ID sistem lama (pola `id_sumber`
-spt migrasi SIMPEG di EIP Core) begitu Fase 5/6 (refactor Aset/Persediaan)
-tiba, supaya ETL data lama tertelusuri.
+**Data lama bisa diimpor nanti** (dikonfirmasi pengguna) — begitu Fase
+5/6 (refactor Aset/Persediaan) tiba, skema pencatatan Aset/Persediaan
+(BUKAN skema Perencanaan ini — `permintaan` adalah data baru tanpa
+padanan lama) menyiapkan kolom referensi ke ID sistem lama (pola
+`id_sumber` spt migrasi SIMPEG), supaya ETL data lama tertelusuri.
 
 ---
 
-## 8. Hal yang masih terbuka (belum diputuskan)
+## 10. Sengaja di luar scope v1 (jaga tetap sederhana)
 
-- Kepemilikan taksonomi `kategori_kebutuhan`: di Perencanaan saja, atau
-  naik jadi master lintas-domain di EIP Core?
-- Kepemilikan `vendor`: di Pengadaan (dugaan kuat) — belum dikonfirmasi.
-- Toleransi/buffer validasi pagu saat estimasi harga meleset.
-- Notifikasi "Perlu Penyesuaian" ke prodi — pakai wa-blast (sudah
-  tersambung ke EIP Core, bukan ke Perencanaan — perlu jalur baru)?
-- Anggaran (pagu) apakah genuinely "milik" Perencanaan sepenuhnya, atau
-  ada pertimbangan lain (msh didiskusikan sesi sebelumnya, blm final).
-- Skema DB detail (nama tabel final, tipe kolom, index) — draft di §3
-  masih level konsep, belum migration-ready.
-- **Pemeliharaan (§6)**: ambang nilai kapan wajib vendor vs boleh
-  swakelola; apakah `laporan_kerusakan` wajib jadi tahap formal
-  terpisah dulu, atau boleh langsung jadi `permintaan_perbaikan`.
+- Integrasi notifikasi via wa-blast (pakai email/in-app dulu, §8).
+- Ambang nilai/aturan kapan wajib vendor vs swakelola (§8).
+- Approval berjenjang di tahap Pengajuan (memang sengaja tidak ada,
+  dikonfirmasi pengguna — kontrol cukup lewat pagu).
+- Kategori kebutuhan hierarkis (parent-child spt `AssetCategory` di
+  sistem lama) — mulai dari daftar flat dulu (Alat Lab, Komputer,
+  Mebeler), naikkan ke hierarki hanya kalau nyatanya dibutuhkan.
 
 ---
 
-## 9. Status & langkah berikut
+## 11. Status & langkah berikut
 
-Requirement gathering (2026-09-05) — lihat log lengkap di `PROGRESS.md`.
-Belum ada kode dibangun. Langkah berikut yg mungkin: (a) selesaikan hal
-terbuka §8, (b) mulai shared library `eip/client` sbg fondasi teknis,
-(c) scaffold app `perencanaan/` (Laravel 13, pola sama eip-core/wa-blast).
+Desain selesai (2026-09-05) — siap lanjut ke implementasi. Langkah
+berikut: (a) mulai shared library `eip/client` sbg fondasi teknis (blm
+dibangun, dibutuhkan app Perencanaan utk baca master pegawai/unit_kerja
+dari EIP Core), (b) scaffold app `perencanaan/` (Laravel 13, pola sama
+eip-core/wa-blast: deploy.sh, OIDC Google, dst), (c) migration dari §4.
