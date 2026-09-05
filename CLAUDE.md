@@ -200,6 +200,7 @@ master khusus modul saat modul tsb mulai.
 | `docs/02-rancangan-integrasi.md` | Blueprint integrasi EIP + sistem lama + WA blast |
 | `docs/03-autentikasi-sso.md` | Keputusan login/SSO Google OIDC, mode akses, RBAC |
 | `docs/04-analisis-dan-rencana-eksekusi.md` | Analisis sistem existing, keputusan "aplikasi terpisah per domain", pola integrasi, blocker, langkah eksekusi |
+| `docs/05-rancangan-perencanaan.md` | Rancangan app Perencanaan: alur bisnis, entitas, kontrol pagu, hal terbuka |
 | `PROGRESS.md` | Checklist & log progres per sesi |
 
 ---

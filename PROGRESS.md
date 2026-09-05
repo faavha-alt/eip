@@ -736,3 +736,40 @@ Lanjut: dalami detail proses Perencanaan (gimana Pengajuan diproses jadi
 rencana disetujui, siapa approve, gimana cocokkan ke anggaran), atau
 lanjut detailkan wizard Pengadaan, atau mulai shared library `eip/client`
 dulu sbg fondasi teknis app Perencanaan yg terpisah.
+
+### 2026-09-05 (lanjutan — desain proses Perencanaan didalami & didokumentasikan)
+
+Requirement gathering Perencanaan lanjut sampai cukup detail utk
+ditulis jadi dokumen desain resmi: **`docs/05-rancangan-perencanaan.md`**
+(baru, mengikuti pola docs/01-04). Ringkasan keputusan yg terkumpul:
+
+- **Anggaran/pagu**: dibagi ke SEMUA unit penerima termasuk Fakultas
+  sendiri (bukan model "Fakultas pool → sub-alokasi Prodi" yg kaku spt
+  sistem lama). Pagu ditentukan langsung Fakultas, diinput admin, TANPA
+  alur approval tersendiri utk penetapannya. **Bisa direvisi di tengah
+  periode** — dirancang sbg ledger/riwayat (pola sama `riwayat_pangkat_
+  golongan`), bukan nilai tunggal yg di-update di tempat.
+- **Kategori kebutuhan** (master sederhana, admin-manageable): Alat Lab,
+  Komputer, Mebeler (contoh awal, extensible) — dipakai klasifikasi
+  Pengajuan DAN nanti routing vendor di Pengadaan.
+- **Pengajuan TANPA approval gate** — prodi bebas ajukan barang apa saja.
+  Kontrolnya murni di sisi **pagu**: **hard block** real-time, pengajuan
+  tidak bisa melebihi sisa pagu unit, pagu habis = tidak bisa nambah
+  barang lagi (dikonfirmasi eksplisit).
+- **Penyesuaian pasca-harga-riil**: kalau harga dari Pengadaan beda dari
+  estimasi, status jadi "Perlu Penyesuaian" — **prodi sendiri** yg
+  menyesuaikan jumlah/harga (bukan admin pengadaan atas nama prodi),
+  tetap tunduk kontrol pagu yg sama.
+- Alur lengkap: Pengajuan (bebas, dibatasi pagu) → terkumpul per
+  kategori → Pengadaan (pilih vendor per kategori) → harga riil →
+  [penyesuaian bila perlu] → Direalisasikan → dicatat di Aset/Persediaan.
+
+**Hal msh terbuka** (dicatat di dok §7): kepemilikan taksonomi kategori
+(Perencanaan vs naik ke EIP Core), kepemilikan Vendor (dugaan: Pengadaan),
+toleransi validasi pagu, jalur notifikasi "Perlu Penyesuaian" ke prodi
+(wa-blast blm tersambung ke Perencanaan), skema DB detail (msh level
+konsep, blm migration-ready).
+
+**Belum ada kode dibangun** — murni dokumen desain. Lanjut: selesaikan
+hal terbuka, ATAU mulai shared library `eip/client`, ATAU scaffold app
+`perencanaan/` (Laravel 13, pola sama eip-core/wa-blast).
