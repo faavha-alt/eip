@@ -158,7 +158,63 @@ menambah barang."
 
 ---
 
-## 6. Kenapa build baru, bukan pindah dari sistem Aset lama
+## 6. Modul Pemeliharaan & Perbaikan (tambahan, 2026-09-05)
+
+Selama ini **belum tercatat sama sekali** di sistem lama — celah nyata yg
+diangkat pengguna. Istilah umumnya di manajemen aset: *Maintenance
+Management* (CMMS). Beda dari alur Pengadaan (§2-5) yg urusannya barang
+BARU, modul ini urusannya **menjaga & memperbaiki yang sudah ada**.
+
+**Kenapa perlu pagu terpisah**: di anggaran institusi pemerintah,
+belanja pemeliharaan adalah **jenis anggaran berbeda** dari belanja
+modal/pengadaan barang baru — tidak bisa dicampur dalam satu pool.
+Dikonfirmasi pengguna: **pagu terpisah** dari Pagu Pengadaan.
+
+### Alur
+
+```
+Laporan Kerusakan (SIAPA SAJA pegawai di unit boleh lapor — dikonfirmasi,
+                    bukan cuma admin/penanggung jawab aset)
+        │  barang/aset apa, di mana, kerusakan apa, foto (opsional)
+        ▼
+Permintaan Perbaikan/Pemeliharaan (ditindaklanjuti dari laporan)
+        │  dibatasi Pagu Pemeliharaan (pool TERPISAH, pola ledger sama
+        │  spt §3 — bisa direvisi tengah periode)
+        ▼
+[PENGADAAN]  Pelaksanaan — BISA lewat vendor/teknisi eksternal (dikonfirmasi,
+        │    mirip alur beli barang: pilih vendor, dapat harga/biaya riil)
+        │    — swakelola (dikerjakan sendiri tanpa vendor) kemungkinan jg
+        │    ada sbg jalur alternatif, blm dikonfirmasi detail
+        ▼
+Biaya realisasi didapat → sisa Pagu Pemeliharaan ter-update REAL-TIME
+        │  (tracking "abis berapa, tinggal berapa" — kebutuhan eksplisit
+        │  pengguna: "saat pelaksanaan jg abis berapa saat jalan kita
+        │  bisa melihat dana perbaikan tinggal berapa")
+        ▼
+Selesai — dicatat sbg riwayat perbaikan (berguna jg utk histori kondisi
+aset, relevan ke modul pencatatan Aset yg diperamping nanti)
+```
+
+### Entitas tambahan (draft)
+
+| Entitas | Keterangan |
+|---|---|
+| `pagu_pemeliharaan` | Ledger terpisah dari `pagu_anggaran` (§3) — struktur sama: unit_kerja_id, periode_anggaran_id, nominal, berlaku_sejak, ditetapkan_oleh. Pool anggaran BEDA, tidak saling memotong dgn pagu pengadaan barang. |
+| `laporan_kerusakan` | pelapor (pegawai_id, siapapun di unit), unit_kerja_id, aset terkait (referensi ke Aset kalau sudah tercatat, atau deskripsi bebas kalau belum), deskripsi, foto, tingkat urgensi, status (dilaporkan/ditindaklanjuti/selesai/dibatalkan) |
+| `permintaan_perbaikan` | diturunkan dari `laporan_kerusakan` (atau diajukan langsung), estimasi_biaya, vendor_id (nullable — swakelola tak butuh vendor), biaya_realisasi, status (pola sama Pengajuan barang: diajukan→dalam_pelaksanaan→perlu_penyesuaian→direalisasikan) |
+
+**Kontrol pagu**: sama hard-block spt §4, tapi divalidasi terhadap
+`pagu_pemeliharaan`, bukan `pagu_anggaran` — dua pool independen per
+unit per periode.
+
+**Belum dikonfirmasi detail**: kapan swakelola dipakai vs wajib vendor
+(mis. ambang nilai tertentu?), apakah `laporan_kerusakan` wajib official
+dulu sebelum jadi `permintaan_perbaikan` atau bisa langsung diajukan
+tanpa laporan formal.
+
+---
+
+## 7. Kenapa build baru, bukan pindah dari sistem Aset lama
 
 Dibaca langsung kode `iams-fmipa-uns`: modul "Pengadaan" di situ
 (`ProcurementBatchController` + `RealizationController`) menyatu erat
@@ -182,7 +238,7 @@ tiba, supaya ETL data lama tertelusuri.
 
 ---
 
-## 7. Hal yang masih terbuka (belum diputuskan)
+## 8. Hal yang masih terbuka (belum diputuskan)
 
 - Kepemilikan taksonomi `kategori_kebutuhan`: di Perencanaan saja, atau
   naik jadi master lintas-domain di EIP Core?
@@ -194,12 +250,15 @@ tiba, supaya ETL data lama tertelusuri.
   ada pertimbangan lain (msh didiskusikan sesi sebelumnya, blm final).
 - Skema DB detail (nama tabel final, tipe kolom, index) — draft di §3
   masih level konsep, belum migration-ready.
+- **Pemeliharaan (§6)**: ambang nilai kapan wajib vendor vs boleh
+  swakelola; apakah `laporan_kerusakan` wajib jadi tahap formal
+  terpisah dulu, atau boleh langsung jadi `permintaan_perbaikan`.
 
 ---
 
-## 8. Status & langkah berikut
+## 9. Status & langkah berikut
 
 Requirement gathering (2026-09-05) — lihat log lengkap di `PROGRESS.md`.
 Belum ada kode dibangun. Langkah berikut yg mungkin: (a) selesaikan hal
-terbuka §7, (b) mulai shared library `eip/client` sbg fondasi teknis,
+terbuka §8, (b) mulai shared library `eip/client` sbg fondasi teknis,
 (c) scaffold app `perencanaan/` (Laravel 13, pola sama eip-core/wa-blast).

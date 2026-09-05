@@ -773,3 +773,40 @@ konsep, blm migration-ready).
 **Belum ada kode dibangun** — murni dokumen desain. Lanjut: selesaikan
 hal terbuka, ATAU mulai shared library `eip/client`, ATAU scaffold app
 `perencanaan/` (Laravel 13, pola sama eip-core/wa-blast).
+
+### 2026-09-05 (lanjutan — tambah modul Pemeliharaan & Perbaikan ke Perencanaan)
+
+Pengguna angkat celah nyata: **maintenance/perbaikan kerusakan & laporan
+kerusakan selama ini belum tercatat sama sekali** di sistem lama —
+dampaknya, pagu & realisasi biaya pemeliharaan tak pernah bisa dipantau
+("saat pelaksanaan jg abis berapa saat jalan kita bisa melihat dana
+perbaikan tinggal berapa" — kebutuhan eksplisit).
+
+Diberi nama **"Pemeliharaan & Perbaikan"** (istilah umum industri:
+*Maintenance Management*/CMMS) — modul BARU ditambahkan ke scope
+Perencanaan (docs/05 §6), paralel dgn alur Pengadaan barang tapi utk
+kebutuhan menjaga/memperbaiki aset yg sudah ada, bukan beli baru.
+
+**Dikonfirmasi (3 poin sekaligus oleh pengguna)**:
+1. **Pagu Pemeliharaan TERPISAH** dari Pagu Pengadaan (pool anggaran
+   beda — sesuai kenyataan anggaran pemerintah: belanja pemeliharaan
+   vs belanja modal itu jenis berbeda).
+2. **Laporan Kerusakan terbuka utk SEMUA pegawai** di unit (bukan cuma
+   admin/penanggung jawab aset).
+3. **Pelaksanaan perbaikan bisa lewat vendor** — mirip alur Pengadaan
+   (pilih vendor, dapat biaya riil), swakelola kemungkinan jg ada sbg
+   jalur alternatif (blm detail).
+
+Alur: Laporan Kerusakan → Permintaan Perbaikan (dibatasi Pagu
+Pemeliharaan, hard-block sama pola §4) → Pelaksanaan (via Pengadaan,
+bisa vendor) → biaya realisasi → sisa pagu pemeliharaan ter-update
+real-time. Entitas baru: `pagu_pemeliharaan` (ledger terpisah, struktur
+sama pagu_anggaran), `laporan_kerusakan`, `permintaan_perbaikan`.
+
+`docs/05-rancangan-perencanaan.md` diperbarui (§6 baru, renumber §7-9).
+Belum ada kode. Hal msh terbuka (docs/05 §8): ambang nilai wajib-vendor
+vs swakelola, laporan_kerusakan wajib formal dulu atau boleh langsung
+jadi permintaan.
+
+Lanjut: selesaikan hal terbuka di docs/05, atau mulai shared library
+`eip/client`, atau scaffold app `perencanaan/`.
