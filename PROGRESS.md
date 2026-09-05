@@ -932,3 +932,22 @@ Lanjut: (a) pass desain UI Perencanaan (adaptasi AeroDeck), (b)
 siapkan hosting/domain + deploy, (c) mulai app Pengadaan (yg akan
 meng-consume permintaan Perencanaan & mengisi vendor/realisasi balik),
 atau (d) dashboard Perencanaan (ringkasan sisa pagu per unit/jenis).
+
+### 2026-09-05 (lanjutan — pass desain UI Perencanaan)
+
+Dikerjakan (b→ ternyata a duluan): UI Perencanaan diadaptasi ke gaya
+**AeroDeck** (Tailwind v4 + Vite + glassmorphism), disamakan dgn
+dashboard eip-core supaya konsisten antar app EIP:
+- `resources/css/app.css`: token AeroDeck (apple-glass-card,
+  font-mono-num, custom-scroll) + kelas kontrol form (.aero-input/
+  -select/-btn/-label dll).
+- `layouts/app.blade.php`: sidebar + header glassmorphism, nav
+  Permintaan (semua user) + Pagu/Kategori/Periode (admin), profil user.
+- Semua view (permintaan index/form, pagu, kategori, periode, login,
+  belum-terdaftar) ditulis ulang dgn Tailwind + glass card.
+- `npm install` + `npm run build` jalan lokal (Node ada di mesin dev).
+- +2 smoke test render halaman → **38/38 test lulus**. Login page
+  diverifikasi render via `php artisan serve` + curl.
+
+Lanjut: siapkan hosting/domain + deploy.sh + GitHub remote, ATAU mulai
+app Pengadaan, ATAU dashboard sisa-pagu Perencanaan.
