@@ -310,3 +310,33 @@ Dibuat: 2026-09-03
   bersih, aset Vite (CSS+JS) 200 di produksi. 21/21 test lulus, Pint bersih.
 - Lanjut: Langkah 4 (API `/api/v1/` master pegawai/unit_kerja/jabatan/
   organisasi utk dikonsumsi app lain).
+
+### 2026-09-05 (Langkah 4 — API `/api/v1/` master data)
+- **Otorisasi berbasis *ability* token Sanctum** (bukan role manusia),
+  sesuai docs/04 §6 "satu jalur tulis": `master:read` (semua service
+  client — sistem lama + app domain baru) vs `pegawai:write` (HANYA app
+  kepegawaian). Middleware alias `abilities`/`ability` didaftarkan manual
+  di `bootstrap/app.php` (Sanctum tak auto-register di Laravel 13).
+- **Endpoint baca** (index+show, ability `master:read`): `/pegawai`,
+  `/unit-kerja`, `/jabatan`, `/organisasi`. Fitur: pagination (`per_page`),
+  filter `updated_since` (dasar sync inkremental sistem lama — pola A/B
+  docs/04), filter tambahan (`unit_kerja_id` utk pegawai, `parent_id`/
+  `jenis_unit` utk unit-kerja, `jenis` utk jabatan). `PegawaiResource`
+  sertakan `penempatan_utama` (unit+jabatan aktif) via `whenLoaded`.
+- **Endpoint tulis** (ability `pegawai:write`): POST/PUT `/pegawai`,
+  POST/PUT `/penempatan` — utk app kepegawaian (belum ada, disiapkan lbh
+  dulu).
+- `service-client:create` dapat `--abilities` (default `master:read`).
+- **Bug ditemukan+diperbaiki**: `store()` tidak `refresh()` model stlh
+  `create()` — kolom dgn default DB (`is_active`, `status`) tampil `null`
+  di response walau sebenarnya terisi di DB.
+- Diuji: 10 test API baru + smoke test end-to-end sungguhan (curl thd
+  server dev + **produksi**, data asli 190 pegawai): baca 200 + pagination
+  benar (`total: 190`), tulis via token baca-saja 403, tulis via token
+  `pegawai:write` 201. Service client percobaan di produksi dihapus stlh
+  verifikasi. 31/31 test proyek lulus, Pint bersih.
+- Lanjut: Langkah 2 (integrasi pilot 1 sistem lama, mis. logistik — bikin
+  `service-client:create logistik` sungguhan + job sync di sisi sistem
+  lama) ATAU Langkah 3 lanjutan (shared library `eip/client` blm dibuat)
+  ATAU mulai app Kepegawaian (Langkah 1 blm ada, cuma modul master di
+  EIP Core yg sudah jalan).
