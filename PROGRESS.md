@@ -340,3 +340,27 @@ Dibuat: 2026-09-03
   lama) ATAU Langkah 3 lanjutan (shared library `eip/client` blm dibuat)
   ATAU mulai app Kepegawaian (Langkah 1 blm ada, cuma modul master di
   EIP Core yg sudah jalan).
+
+### 2026-09-05 (revisi arsitektur — Kepegawaian gabung ke EIP Core)
+- Pengguna pilih mulai Langkah 1 (app Kepegawaian) duluan, lalu bertanya:
+  lebih enak digabung ke EIP Core atau hosting terpisah?
+- **Keputusan REVISI (membalik sebagian "aplikasi terpisah per domain"
+  final 2026-09-03)**: Kepegawaian jadi **modul di dalam EIP Core**, BUKAN
+  app terpisah. Alasan teknis: seluruh data Kepegawaian (pegawai,
+  penempatan, riwayat_pendidikan, riwayat_pangkat_golongan,
+  keluarga_pegawai, dokumen_pegawai) sudah dari awal disimpan di DB EIP
+  Core sendiri, bukan DB terpisah — app terpisah akan jadi "app kosong"
+  yg cuma UI pemanggil API terus-menerus. Alasan operasional: pengalaman
+  langsung menyiapkan hosting EIP Core (SSH, DB, Node tanpa root, deploy
+  script) menunjukkan beban ops signifikan utk tim 1-2 orang, tidak
+  sepadan diulang utk app yg sebenarnya cuma antarmuka data yg sudah ada.
+  Perencanaan/Pengadaan/Akademik TETAP direncanakan terpisah (py data
+  sendiri yg genuinely beda: rencana, pengajuan).
+- Frontend modul Kepegawaian: **Blade + Tailwind** (gaya AeroDeck sama dgn
+  dashboard EIP Core), BUKAN Vue SPA — konsisten dgn keputusan dashboard
+  kemarin, jauh lebih cepat drpd setup Vue+Vite+Pinia+Router terpisah.
+  CRUD langsung via Eloquent (tanpa panggil API HTTP internal — krn satu
+  app/DB yg sama). Akses tulis dibatasi role `admin-kepegawaian`/`admin`.
+- CLAUDE.md §1/§3/§8 diperbarui reflect revisi ini.
+- Cakupan v1 (default, blm dikonfirmasi eksplisit): CRUD pegawai +
+  penempatan + direktori/pencarian. Riwayat/keluarga/dokumen menyusul.

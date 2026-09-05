@@ -24,10 +24,17 @@ diserap EIP), semuanya **Laravel + MySQL**:
 - **EIP Core** — aplikasi pusat: pemegang **master data pegawai** (satu-satunya
   rujukan & satu-satunya pemilik DB master), **RBAC terpusat**, **API `/api/v1/`**
   utk semua konsumen, dan **portal/launcher SSO**.
-- **Aplikasi domain** — tiap domain baru dibangun sbg **aplikasi yang berdiri
+- **Aplikasi domain** — domain baru dibangun sbg **aplikasi yang berdiri
   sendiri** (Laravel 13 + MySQL sendiri + SPA Vue sendiri, deploy sendiri):
-  **kepegawaian**, **perencanaan**, **pengadaan**, dan nantinya **akademik**.
-  Semuanya membaca master dari EIP Core API.
+  **perencanaan**, **pengadaan**, dan nantinya **akademik**. Semuanya membaca
+  master dari EIP Core API.
+- **Kepegawaian = MODUL DI DALAM EIP Core** (keputusan revisi 2026-09-05,
+  lihat bawah), BUKAN aplikasi terpisah — beda dari domain lain krn tidak
+  py data sendiri (seluruh isinya sudah di DB EIP Core: pegawai, penempatan,
+  riwayat_pendidikan, riwayat_pangkat_golongan, keluarga_pegawai,
+  dokumen_pegawai). CRUD langsung via Eloquent, tanpa panggil API HTTP
+  internal. Ditulis via Blade (gaya AeroDeck, sama dgn dashboard EIP Core),
+  bukan Vue SPA. Akses tulis dibatasi role `admin-kepegawaian` (atau `admin`).
 - **Server WA blast** (layanan terpisah, sudah dirancang) dipanggil aplikasi
   yang butuh notifikasi outbound.
 
@@ -52,26 +59,30 @@ EIP Core, DTO, dan middleware auth dipakai semua app; alur lintas-app via
 event/webhook, bukan transaksi terdistribusi. Analisis lengkap + keberatan
 yang tercatat: `docs/04-analisis-dan-rencana-eksekusi.md`.
 
+**Revisi 2026-09-05 (Kepegawaian saja):** setelah benar-benar menyiapkan
+hosting EIP Core (SSH, DB, Node tanpa root, deploy script) dirasakan beban
+ops-nya, DAN krn tabel Kepegawaian (pegawai, penempatan, riwayat_*,
+keluarga_pegawai, dokumen_pegawai) sudah dari awal disimpan di DB EIP Core
+sendiri (bukan DB terpisah) — Kepegawaian **dipindah jadi modul di dalam EIP
+Core**, bukan app terpisah. Perencanaan/Pengadaan/Akademik TETAP direncanakan
+terpisah krn py data sendiri yang genuinely beda (rencana, pengajuan).
+
 ```
-                    ┌───────────────────────────────────┐
-                    │            EIP Core               │
-                    │  master pegawai/unit/jabatan/org   │
-                    │  RBAC terpusat  ·  portal SSO      │
-                    │  API /api/v1/  (satu-satunya       │
-                    │  pemilik DB master)               │
-                    └───┬─────┬─────┬─────┬─────┬────────┘
-             baca/tulis │     │baca │baca │baca │ baca (API)
-             master (API)│    │     │     │     │
-   ┌──────────────┐  ┌───┴───┐ ┌──┴──┐ ┌─┴────┐ │  ┌──────────┐┌──────────┐┌───────────┐
-   │ Kepegawaian  │  │Perenc.│ │Peng-│ │Akade-│ │  │  Gaji    ││  Aset    ││ Logistik  │
-   │ (app sendiri)│  │(app)  │ │adaan│ │mik   │ │  │ (lama)   ││ (lama)   ││  (lama)   │
-   │ satu-satunya │  └───────┘ │(app)│ │nanti │ │  └──────────┘└──────────┘└───────────┘
-   │ penulis mstr │            └─────┘ └──────┘ │
-   └──────────────┘                             │
-                                        ┌───────┴────────┐
-                                        │  WA blast       │
-                                        │  (terpisah)     │
-                                        └────────────────┘
+   ┌─────────────────────────────────────────────────┐
+   │                  EIP Core                        │
+   │  master pegawai/unit/jabatan/org (satu2nya DB)   │
+   │  + MODUL Kepegawaian (Blade, tulis via Eloquent)  │
+   │  RBAC terpusat · portal SSO · API /api/v1/        │
+   └───┬─────────┬─────────┬────────────────┬─────────┘
+       │ baca     │ baca     │ baca (API)     │ baca (API)
+  ┌────┴───┐ ┌────┴────┐ ┌───┴──────┐  ┌──────┴───┐┌─────────┐┌───────────┐
+  │Perenc. │ │Pengadaan│ │ Akademik │  │  Gaji    ││  Aset   ││ Logistik  │
+  │ (app)  │ │ (app)   │ │ (nanti)  │  │ (lama)   ││ (lama)  ││  (lama)   │
+  └────────┘ └─────────┘ └──────────┘  └──────────┘└─────────┘└───────────┘
+                                    ┌────────────────┐
+                                    │  WA blast       │
+                                    │  (terpisah)     │
+                                    └────────────────┘
 ```
 
 ---
@@ -102,13 +113,16 @@ yang tercatat: `docs/04-analisis-dan-rencana-eksekusi.md`.
    Semua konsumen — app domain baru + sistem lama — **baca dari EIP Core API**.
 3. **Satu jalur tulis** data pegawai: **hanya app kepegawaian**, menulis ke
    EIP Core lewat API (service token). App & sistem lain hanya baca.
-4. **Aplikasi terpisah per domain** (keputusan 2026-09-03, final): EIP Core,
-   kepegawaian, perencanaan, pengadaan, (akademik nanti) — masing-masing
-   **Laravel 13 + MySQL + SPA sendiri, deploy sendiri**. Integrasi HANYA lewat
+4. **Aplikasi terpisah per domain** (keputusan 2026-09-03, final; revisi
+   2026-09-05 utk Kepegawaian): EIP Core, perencanaan, pengadaan, (akademik
+   nanti) — masing-masing **Laravel 13 + MySQL + SPA sendiri, deploy sendiri**.
+   **Kepegawaian = modul DI DALAM EIP Core** (bukan app terpisah), krn semua
+   datanya sudah di DB EIP Core sejak awal. Integrasi app lain HANYA lewat
    EIP Core API (tanpa FK lintas-DB). **Shared library** (composer package
-   internal) utk klien EIP Core, DTO, middleware auth — dipakai semua app.
-   Konsekuensi ops (CI/CD, monitoring, OIDC client, backup per app) diterima
-   sadar; detail & analisis di `docs/04-analisis-dan-rencana-eksekusi.md`.
+   internal) utk klien EIP Core, DTO, middleware auth — dipakai app yg
+   genuinely terpisah. Konsekuensi ops (CI/CD, monitoring, OIDC client,
+   backup per app) diterima sadar; detail & analisis di
+   `docs/04-analisis-dan-rencana-eksekusi.md`.
 5. **Tanpa Filament** — kendali penuh UI (workflow rumit di beberapa tempat).
 6. Identitas resmi ASN (**NIP, NIK, ID_SIMPEG**) disimpan sbg kolom referensi
    di EIP Core utk matching ke SIMPEG (sumber resmi = SIMPEG/Dukcapil, EIP
@@ -177,10 +191,9 @@ Urutan diselaraskan ke **nilai & risiko** (bukan sekadar urutan modul).
 Rincian langkah teknis per fase: `docs/04-analisis-dan-rencana-eksekusi.md`.
 
 1. **Fase 0 — EIP Core:** master (`unit_kerja` → `pegawai` → `jabatan`,
-   `organisasi`), RBAC, OIDC, `audit_log`, API `/api/v1/`, portal SSO,
-   **shared library** klien Core.
-2. **Fase 1 — App Kepegawaian:** CRUD pegawai + penempatan + direktori;
-   penulis tunggal master (via EIP Core API).
+   `organisasi`), RBAC, OIDC, `audit_log`, API `/api/v1/`, portal SSO. ✅
+2. **Fase 1 — Modul Kepegawaian (di EIP Core):** CRUD pegawai + penempatan +
+   direktori; penulis tunggal master (langsung via Eloquent, satu app).
 3. **Fase 2 — Integrasi pilot:** sync master ke **1 sistem lama** (mis.
    logistik) sbg pembuktian pola; sambungkan **WA blast**. (Naik dari fase
    akhir → di sini, karena risiko integrasi terbesar.)
