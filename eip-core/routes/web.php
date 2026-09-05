@@ -2,8 +2,12 @@
 
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Kepegawaian\DokumenController;
+use App\Http\Controllers\Kepegawaian\KeluargaController;
 use App\Http\Controllers\Kepegawaian\PegawaiController;
 use App\Http\Controllers\Kepegawaian\PenempatanController;
+use App\Http\Controllers\Kepegawaian\RiwayatPangkatGolonganController;
+use App\Http\Controllers\Kepegawaian\RiwayatPendidikanController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -33,6 +37,19 @@ Route::middleware('auth')->group(function () {
             Route::post('/{pegawai}/penempatan', [PenempatanController::class, 'store'])->name('penempatan.store');
             Route::put('/penempatan/{penempatan}', [PenempatanController::class, 'update'])->name('penempatan.update');
             Route::delete('/penempatan/{penempatan}', [PenempatanController::class, 'destroy'])->name('penempatan.destroy');
+
+            Route::post('/{pegawai}/riwayat-pendidikan', [RiwayatPendidikanController::class, 'store'])->name('riwayat-pendidikan.store');
+            Route::delete('/riwayat-pendidikan/{riwayatPendidikan}', [RiwayatPendidikanController::class, 'destroy'])->name('riwayat-pendidikan.destroy');
+
+            Route::post('/{pegawai}/riwayat-pangkat', [RiwayatPangkatGolonganController::class, 'store'])->name('riwayat-pangkat.store');
+            Route::delete('/riwayat-pangkat/{riwayatPangkatGolongan}', [RiwayatPangkatGolonganController::class, 'destroy'])->name('riwayat-pangkat.destroy');
+
+            Route::post('/{pegawai}/keluarga', [KeluargaController::class, 'store'])->name('keluarga.store');
+            Route::delete('/keluarga/{keluarga}', [KeluargaController::class, 'destroy'])->name('keluarga.destroy');
+
+            Route::post('/{pegawai}/dokumen', [DokumenController::class, 'store'])->name('dokumen.store');
+            Route::get('/dokumen/{dokumen}/unduh', [DokumenController::class, 'download'])->name('dokumen.download');
+            Route::delete('/dokumen/{dokumen}', [DokumenController::class, 'destroy'])->name('dokumen.destroy');
         });
 
         Route::get('/{pegawai}', [PegawaiController::class, 'show'])->name('show');

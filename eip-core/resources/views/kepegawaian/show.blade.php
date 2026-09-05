@@ -5,6 +5,7 @@
 @php
     $bolehTulis = auth()->user()->roles->pluck('kode')->intersect(['admin', 'admin-kepegawaian'])->isNotEmpty();
     $utama = $pegawai->penempatan->firstWhere('is_posisi_utama', true);
+    $miniInput = 'w-full text-[11px] bg-[#F4F4F6]/80 border border-transparent focus:border-slate-200 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/5 rounded-xl px-2.5 py-2 transition-all';
 @endphp
 
 @section('content')
@@ -102,50 +103,159 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {{-- Riwayat Pendidikan --}}
                 <div class="apple-glass-card rounded-3xl p-6">
                     <h2 class="text-sm font-bold text-slate-900 mb-3">Riwayat Pendidikan</h2>
-                    @forelse ($pegawai->riwayatPendidikan as $r)
-                        <div class="text-xs py-2 border-b border-slate-100 last:border-0">
-                            <p class="font-semibold text-slate-700">{{ $r->pendidikan?->nama }} — {{ $r->nama_institusi ?? '—' }}</p>
-                            <p class="text-[10px] text-slate-400">{{ $r->program_studi }} @if($r->tahun_lulus) · lulus {{ $r->tahun_lulus }} @endif</p>
-                        </div>
-                    @empty
-                        <p class="text-xs text-slate-400">Belum ada data — menyusul.</p>
-                    @endforelse
+                    <div class="space-y-1 mb-3">
+                        @forelse ($pegawai->riwayatPendidikan as $r)
+                            <div class="flex items-start justify-between text-xs py-2 border-b border-slate-100 last:border-0">
+                                <div>
+                                    <p class="font-semibold text-slate-700">{{ $r->pendidikan?->nama }} — {{ $r->nama_institusi ?? '—' }}</p>
+                                    <p class="text-[10px] text-slate-400">{{ $r->program_studi }} @if($r->tahun_lulus) · lulus {{ $r->tahun_lulus }} @endif</p>
+                                </div>
+                                @if ($bolehTulis)
+                                    <form method="POST" action="{{ route('kepegawaian.riwayat-pendidikan.destroy', $r) }}" onsubmit="return confirm('Hapus riwayat ini?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-[10px] font-semibold text-rose-500 hover:text-rose-700 shrink-0">Hapus</button>
+                                    </form>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-400">Belum ada data.</p>
+                        @endforelse
+                    </div>
+                    @if ($bolehTulis)
+                        <form method="POST" action="{{ route('kepegawaian.riwayat-pendidikan.store', $pegawai) }}" class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                            @csrf
+                            <select name="pendidikan_id" required class="{{ $miniInput }} col-span-2">
+                                <option value="">Jenjang</option>
+                                @foreach ($pendidikanOptions as $opt)
+                                    <option value="{{ $opt->id }}">{{ $opt->nama }}</option>
+                                @endforeach
+                            </select>
+                            <input type="text" name="nama_institusi" placeholder="Institusi" class="{{ $miniInput }} col-span-2">
+                            <input type="text" name="program_studi" placeholder="Program studi" class="{{ $miniInput }}">
+                            <input type="number" name="tahun_lulus" placeholder="Tahun lulus" class="{{ $miniInput }}">
+                            <button type="submit" class="col-span-2 px-3 py-2 rounded-xl text-[11px] font-bold text-white bg-slate-900 hover:bg-slate-800 transition">Tambah</button>
+                        </form>
+                    @endif
                 </div>
 
+                {{-- Riwayat Pangkat/Golongan --}}
                 <div class="apple-glass-card rounded-3xl p-6">
                     <h2 class="text-sm font-bold text-slate-900 mb-3">Riwayat Pangkat/Golongan</h2>
-                    @forelse ($pegawai->riwayatPangkatGolongan as $r)
-                        <div class="text-xs py-2 border-b border-slate-100 last:border-0">
-                            <p class="font-semibold text-slate-700 font-mono-num">{{ $r->golonganRuang?->kode }}</p>
-                            <p class="text-[10px] text-slate-400">TMT {{ $r->tmt?->translatedFormat('d M Y') }} @if($r->no_sk) · SK {{ $r->no_sk }} @endif</p>
-                        </div>
-                    @empty
-                        <p class="text-xs text-slate-400">Belum ada data — menyusul.</p>
-                    @endforelse
+                    <div class="space-y-1 mb-3">
+                        @forelse ($pegawai->riwayatPangkatGolongan as $r)
+                            <div class="flex items-start justify-between text-xs py-2 border-b border-slate-100 last:border-0">
+                                <div>
+                                    <p class="font-semibold text-slate-700 font-mono-num">{{ $r->golonganRuang?->kode }}</p>
+                                    <p class="text-[10px] text-slate-400">TMT {{ $r->tmt?->translatedFormat('d M Y') }} @if($r->no_sk) · SK {{ $r->no_sk }} @endif</p>
+                                </div>
+                                @if ($bolehTulis)
+                                    <form method="POST" action="{{ route('kepegawaian.riwayat-pangkat.destroy', $r) }}" onsubmit="return confirm('Hapus riwayat ini?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-[10px] font-semibold text-rose-500 hover:text-rose-700 shrink-0">Hapus</button>
+                                    </form>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-400">Belum ada data.</p>
+                        @endforelse
+                    </div>
+                    @if ($bolehTulis)
+                        <form method="POST" action="{{ route('kepegawaian.riwayat-pangkat.store', $pegawai) }}" class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                            @csrf
+                            <select name="golongan_ruang_id" required class="{{ $miniInput }} col-span-2">
+                                <option value="">Golongan/Ruang</option>
+                                @foreach ($golonganOptions as $opt)
+                                    <option value="{{ $opt->id }}">{{ $opt->kode }}</option>
+                                @endforeach
+                            </select>
+                            <input type="date" name="tmt" required class="{{ $miniInput }}">
+                            <input type="text" name="no_sk" placeholder="No. SK" class="{{ $miniInput }}">
+                            <button type="submit" class="col-span-2 px-3 py-2 rounded-xl text-[11px] font-bold text-white bg-slate-900 hover:bg-slate-800 transition">Tambah</button>
+                        </form>
+                    @endif
                 </div>
 
+                {{-- Keluarga --}}
                 <div class="apple-glass-card rounded-3xl p-6">
                     <h2 class="text-sm font-bold text-slate-900 mb-3">Keluarga</h2>
-                    @forelse ($pegawai->keluarga as $k)
-                        <div class="text-xs py-2 border-b border-slate-100 last:border-0">
-                            <p class="font-semibold text-slate-700">{{ $k->nama }} <span class="text-slate-400 font-normal">({{ $k->hubungan->value }})</span></p>
-                        </div>
-                    @empty
-                        <p class="text-xs text-slate-400">Belum ada data — menyusul.</p>
-                    @endforelse
+                    <div class="space-y-1 mb-3">
+                        @forelse ($pegawai->keluarga as $k)
+                            <div class="flex items-start justify-between text-xs py-2 border-b border-slate-100 last:border-0">
+                                <p class="font-semibold text-slate-700">{{ $k->nama }} <span class="text-slate-400 font-normal">({{ ['pasangan' => 'Pasangan', 'anak' => 'Anak', 'orang_tua' => 'Orang Tua', 'lainnya' => 'Lainnya'][$k->hubungan->value] }})</span></p>
+                                @if ($bolehTulis)
+                                    <form method="POST" action="{{ route('kepegawaian.keluarga.destroy', $k) }}" onsubmit="return confirm('Hapus data keluarga ini?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-[10px] font-semibold text-rose-500 hover:text-rose-700 shrink-0">Hapus</button>
+                                    </form>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-400">Belum ada data.</p>
+                        @endforelse
+                    </div>
+                    @if ($bolehTulis)
+                        <form method="POST" action="{{ route('kepegawaian.keluarga.store', $pegawai) }}" class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                            @csrf
+                            <select name="hubungan" required class="{{ $miniInput }}">
+                                <option value="pasangan">Pasangan</option>
+                                <option value="anak">Anak</option>
+                                <option value="orang_tua">Orang Tua</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                            <input type="text" name="nama" placeholder="Nama" required class="{{ $miniInput }}">
+                            <input type="date" name="tanggal_lahir" class="{{ $miniInput }}">
+                            <input type="text" name="no_hp" placeholder="No. HP" class="{{ $miniInput }}">
+                            <button type="submit" class="col-span-2 px-3 py-2 rounded-xl text-[11px] font-bold text-white bg-slate-900 hover:bg-slate-800 transition">Tambah</button>
+                        </form>
+                    @endif
                 </div>
 
+                {{-- Dokumen --}}
                 <div class="apple-glass-card rounded-3xl p-6">
                     <h2 class="text-sm font-bold text-slate-900 mb-3">Dokumen</h2>
-                    @forelse ($pegawai->dokumen as $d)
-                        <div class="text-xs py-2 border-b border-slate-100 last:border-0">
-                            <p class="font-semibold text-slate-700">{{ $d->jenis->value }} @if($d->nomor_dokumen) — {{ $d->nomor_dokumen }} @endif</p>
-                        </div>
-                    @empty
-                        <p class="text-xs text-slate-400">Belum ada data — menyusul.</p>
-                    @endforelse
+                    <div class="space-y-1 mb-3">
+                        @forelse ($pegawai->dokumen as $d)
+                            <div class="flex items-start justify-between text-xs py-2 border-b border-slate-100 last:border-0">
+                                <div>
+                                    <p class="font-semibold text-slate-700">{{ ucwords(str_replace('_', ' ', $d->jenis->value)) }} @if($d->nomor_dokumen) — {{ $d->nomor_dokumen }} @endif</p>
+                                    @if ($d->file_path)
+                                        <a href="{{ route('kepegawaian.dokumen.download', $d) }}" class="text-[10px] text-indigo-600 hover:underline">Unduh berkas</a>
+                                    @endif
+                                </div>
+                                @if ($bolehTulis)
+                                    <form method="POST" action="{{ route('kepegawaian.dokumen.destroy', $d) }}" onsubmit="return confirm('Hapus dokumen ini?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-[10px] font-semibold text-rose-500 hover:text-rose-700 shrink-0">Hapus</button>
+                                    </form>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-400">Belum ada data.</p>
+                        @endforelse
+                    </div>
+                    @if ($bolehTulis)
+                        <form method="POST" action="{{ route('kepegawaian.dokumen.store', $pegawai) }}" enctype="multipart/form-data" class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                            @csrf
+                            <select name="jenis" required class="{{ $miniInput }} col-span-2">
+                                <option value="sk_cpns">SK CPNS</option>
+                                <option value="sk_pns">SK PNS</option>
+                                <option value="sk_golongan">SK Golongan</option>
+                                <option value="sk_jabatan">SK Jabatan</option>
+                                <option value="ijazah">Ijazah</option>
+                                <option value="ktp">KTP</option>
+                                <option value="kartu_keluarga">Kartu Keluarga</option>
+                                <option value="npwp">NPWP</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                            <input type="text" name="nomor_dokumen" placeholder="Nomor dokumen" class="{{ $miniInput }}">
+                            <input type="date" name="tanggal_dokumen" class="{{ $miniInput }}">
+                            <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" class="{{ $miniInput }} col-span-2 py-1.5">
+                            <button type="submit" class="col-span-2 px-3 py-2 rounded-xl text-[11px] font-bold text-white bg-slate-900 hover:bg-slate-800 transition">Tambah</button>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>

@@ -75,6 +75,8 @@ class PegawaiController extends Controller
             'pegawai' => $pegawai,
             'unitKerjaOptions' => UnitKerja::orderBy('nama')->get(['id', 'nama']),
             'jabatanOptions' => Jabatan::orderBy('nama')->get(['id', 'nama']),
+            'pendidikanOptions' => Pendidikan::orderBy('jenjang')->get(['id', 'nama']),
+            'golonganOptions' => GolonganRuang::orderBy('tingkat')->get(['id', 'kode']),
         ]);
     }
 

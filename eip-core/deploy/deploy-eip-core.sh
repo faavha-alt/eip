@@ -23,6 +23,8 @@ rsync -a --delete \
   --exclude='storage/framework/cache' \
   --exclude='storage/framework/sessions' \
   --exclude='storage/framework/views' \
+  --exclude='storage/app/private' \
+  --exclude='storage/app/public' \
   --exclude='database/database.sqlite' \
   "$REPO/eip-core/" "$SITE/"
 

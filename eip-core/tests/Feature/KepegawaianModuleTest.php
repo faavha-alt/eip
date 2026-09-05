@@ -2,13 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Models\GolonganRuang;
 use App\Models\Jabatan;
+use App\Models\KeluargaPegawai;
 use App\Models\Pegawai;
+use App\Models\Pendidikan;
 use App\Models\Penempatan;
 use App\Models\Role;
 use App\Models\UnitKerja;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class KepegawaianModuleTest extends TestCase
@@ -150,6 +155,107 @@ class KepegawaianModuleTest extends TestCase
             'unit_kerja_id' => $unit->id,
             'jabatan_id' => $jabatan->id,
             'tgl_mulai' => now()->toDateString(),
+        ])->assertForbidden();
+    }
+
+    public function test_tambah_riwayat_pendidikan_sinkron_pendidikan_terkini(): void
+    {
+        $user = $this->userWithRole('admin-kepegawaian');
+        $s2 = Pendidikan::where('kode', 's2')->firstOrFail();
+        $s3 = Pendidikan::where('kode', 's3')->firstOrFail();
+        $pegawai = Pegawai::factory()->create(['pendidikan_terakhir_id' => $s2->id]);
+
+        $this->actingAs($user)->post(route('kepegawaian.riwayat-pendidikan.store', $pegawai), [
+            'pendidikan_id' => $s3->id,
+            'nama_institusi' => 'Universitas Contoh',
+            'tahun_lulus' => 2023,
+        ])->assertRedirect();
+
+        $this->assertSame(1, $pegawai->riwayatPendidikan()->count());
+        $this->assertSame($s3->id, $pegawai->fresh()->pendidikan_terakhir_id);
+    }
+
+    public function test_hapus_riwayat_pendidikan(): void
+    {
+        $user = $this->userWithRole('admin-kepegawaian');
+        $pegawai = Pegawai::factory()->create();
+        $riwayat = $pegawai->riwayatPendidikan()->create([
+            'pendidikan_id' => Pendidikan::first()->id,
+        ]);
+
+        $this->actingAs($user)->delete(route('kepegawaian.riwayat-pendidikan.destroy', $riwayat))->assertRedirect();
+
+        $this->assertSoftDeleted($riwayat); // soft delete, bukan hilang permanen (audit)
+    }
+
+    public function test_tambah_riwayat_pangkat_sinkron_golongan_terkini(): void
+    {
+        $user = $this->userWithRole('admin-kepegawaian');
+        $golLama = GolonganRuang::where('kode', 'III/a')->firstOrFail();
+        $golBaru = GolonganRuang::where('kode', 'III/b')->firstOrFail();
+        $pegawai = Pegawai::factory()->create([
+            'golongan_ruang_id' => $golLama->id,
+            'tmt_golongan' => '2020-01-01',
+        ]);
+
+        $this->actingAs($user)->post(route('kepegawaian.riwayat-pangkat.store', $pegawai), [
+            'golongan_ruang_id' => $golBaru->id,
+            'tmt' => '2024-01-01',
+            'no_sk' => 'SK/001/2024',
+        ])->assertRedirect();
+
+        $pegawai->refresh();
+        $this->assertSame($golBaru->id, $pegawai->golongan_ruang_id);
+        $this->assertSame('2024-01-01', $pegawai->tmt_golongan->toDateString());
+    }
+
+    public function test_tambah_dan_hapus_keluarga(): void
+    {
+        $user = $this->userWithRole('admin-kepegawaian');
+        $pegawai = Pegawai::factory()->create();
+
+        $this->actingAs($user)->post(route('kepegawaian.keluarga.store', $pegawai), [
+            'hubungan' => 'anak',
+            'nama' => 'Anak Contoh',
+        ])->assertRedirect();
+
+        $keluarga = KeluargaPegawai::where('nama', 'Anak Contoh')->firstOrFail();
+        $this->assertTrue($keluarga->status_tanggungan);
+
+        $this->actingAs($user)->delete(route('kepegawaian.keluarga.destroy', $keluarga))->assertRedirect();
+        $this->assertSoftDeleted($keluarga);
+    }
+
+    public function test_tambah_dokumen_dgn_file_lalu_unduh_lalu_hapus(): void
+    {
+        Storage::fake('local');
+        $user = $this->userWithRole('admin-kepegawaian');
+        $pegawai = Pegawai::factory()->create();
+        $file = UploadedFile::fake()->create('sk-pns.pdf', 100, 'application/pdf');
+
+        $this->actingAs($user)->post(route('kepegawaian.dokumen.store', $pegawai), [
+            'jenis' => 'sk_pns',
+            'nomor_dokumen' => 'SK/002/2024',
+            'file' => $file,
+        ])->assertRedirect();
+
+        $dokumen = $pegawai->dokumen()->firstOrFail();
+        Storage::disk('local')->assertExists($dokumen->file_path);
+
+        $this->actingAs($user)->get(route('kepegawaian.dokumen.download', $dokumen))->assertOk();
+
+        $this->actingAs($user)->delete(route('kepegawaian.dokumen.destroy', $dokumen))->assertRedirect();
+        Storage::disk('local')->assertMissing($dokumen->file_path);
+        $this->assertSoftDeleted($dokumen);
+    }
+
+    public function test_sub_resource_kepegawaian_ditolak_tanpa_role(): void
+    {
+        $user = User::factory()->create();
+        $pegawai = Pegawai::factory()->create();
+
+        $this->actingAs($user)->post(route('kepegawaian.keluarga.store', $pegawai), [
+            'hubungan' => 'anak', 'nama' => 'X',
         ])->assertForbidden();
     }
 }
