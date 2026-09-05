@@ -85,6 +85,24 @@ pencatatan yang tetap terpisah & sejajar** (bukan digabung jadi satu sistem
 Perencanaan → Pengadaan → refactor Aset (pencatatan-only) → refactor
 Persediaan/Logistik BHP (pencatatan-only). Detail fase: §8.
 
+**Perencanaan DIKONFIRMASI aplikasi terpisah, BUKAN modul EIP Core**
+(dipertimbangkan eksplisit & ditolak). Beda dgn kasus Kepegawaian: data
+Perencanaan (rencana kebutuhan, pengajuan, anggaran, prioritas) TIDAK
+ada di DB EIP Core sejak awal, jadi tak ada alasan "cuma mengakui
+kenyataan yg sudah ada" spt Kepegawaian dulu. Digabung ke EIP Core
+malah berisiko bikin EIP Core jatuh ke masalah yg sama spt yg dikritik
+dari sistem Aset lama: "jadi satu semua, terlalu besar, tidak fokus."
+EIP Core tetap fokus murni master-data-identitas (siklus perubahan
+lambat, py PII sensitif); app proses bisnis (Perencanaan/Pengadaan)
+terpisah krn siklus iterasi jauh lebih cepat.
+
+**Pengajuan (request kebutuhan dari unit/prodi) masuk scope Perencanaan**,
+BUKAN Aset/Persediaan (pencatatan) atau Pengadaan — alurnya: Pengajuan →
+diproses/diprioritaskan di Perencanaan (dicocokkan anggaran) → rencana
+disetujui → jadi input Pengadaan → dieksekusi jadi pembelian → dicatat
+di Aset/Persediaan. **Anggaran (pagu Fakultas→Prodi)** kemungkinan juga
+lebih pas di Perencanaan drpd Pengadaan (masih didiskusikan, blm final).
+
 ```
    ┌─────────────────────────────────────────────────┐
    │                  EIP Core                        │

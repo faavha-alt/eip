@@ -714,7 +714,25 @@ persisten ke DB (bukan cuma state browser/sesi) spy bisa dilanjut kapan
 saja/dari device lain.
 
 **Belum final** — masih proses gali requirement, belum masuk desain
-skema/kode. Lanjut: dalami detail Perencanaan lintas-domain (gimana
-prosesnya, apa outputnya yg jadi input Pengadaan), atau lanjut detailkan
-wizard Pengadaan (langkah apa saja persisnya), atau mulai shared library
-`eip/client` dulu sbg fondasi teknis.
+skema/kode.
+
+**Pengajuan dikonfirmasi masuk scope Perencanaan** (bukan Aset/Pengadaan)
+— alur: Pengajuan (unit/prodi) → diproses/diprioritaskan di Perencanaan
+(dicocokkan anggaran) → rencana disetujui → input Pengadaan → eksekusi
+beli → dicatat di Aset/Persediaan. Anggaran (pagu Fakultas→Prodi)
+kemungkinan ikut pindah ke Perencanaan juga — msh didiskusikan, blm final.
+
+**Keputusan: Perencanaan aplikasi TERPISAH, bukan modul EIP Core**
+(dipertimbangkan eksplisit, ditolak). Beda dgn Kepegawaian dulu (datanya
+sudah ada di EIP Core sejak awal) — data Perencanaan (rencana, pengajuan,
+anggaran) genuinely belum ada di mana pun. Argumen kunci: menggabungkan
+ke EIP Core berisiko bikin EIP Core jatuh ke masalah yg SAMA PERSIS spt
+yg dikritik user dari sistem Aset lama ("jadi satu semua, terlalu besar,
+tidak fokus") — EIP Core tetap fokus murni master-data-identitas (siklus
+ubah lambat, py PII), proses bisnis (Perencanaan/Pengadaan) terpisah krn
+iterasinya jauh lebih cepat. CLAUDE.md §1 diperbarui.
+
+Lanjut: dalami detail proses Perencanaan (gimana Pengajuan diproses jadi
+rencana disetujui, siapa approve, gimana cocokkan ke anggaran), atau
+lanjut detailkan wizard Pengadaan, atau mulai shared library `eip/client`
+dulu sbg fondasi teknis app Perencanaan yg terpisah.
