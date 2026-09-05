@@ -599,3 +599,34 @@ Lanjut: item audit sisa (akses login 7 pegawai bermasalah — 1 tanpa
 email, 6 Gmail pribadi; eksekusi 7 update dari tinjauan SIMPEG kalau
 sudah dikonfirmasi), atau shared library `eip/client`, atau mulai app
 Perencanaan/Pengadaan.
+
+### 2026-09-05 (lanjutan — backlog beres: koreksi SIMPEG + kebijakan akses)
+
+**7 koreksi dari tinjauan SIMPEG DITERAPKAN** (live dev & produksi):
+command sekali-pakai `pegawai:terapkan-koreksi-simpeg` (daftar tetap,
+`--dry-run`, idempoten) — Fitrawan/Aris/Albertus (TMT golongan ke SK
+SIMPEG terbaru), Luthfiya (kode golongan III/b->III/c, sebelumnya salah
+total), Siti Baroroh/Purwo/Heri (pendidikan terkini ke ijazah tertinggi
+SIMPEG). Diverifikasi idempoten (jalan 2x, kedua kali 0 perubahan).
+2 kasus (Budianto, Fora Falentina) tetap SENGAJA TIDAK dikoreksi —
+SIMPEG sendiri yg salah/tertinggal di kasus itu. 1 kasus (Fea Prihapsara,
+S3 vs S2) masih menunggu verifikasi eksternal ke HR/departemen — belum
+disentuh. 51/51 test lulus, situs sehat pasca-deploy.
+
+**Keputusan kebijakan akses login** (7 pegawai bermasalah): pengguna
+putuskan **TIDAK mengizinkan Gmail pribadi** (baik izin domain gmail.com
+maupun whitelist per-alamat ditolak) — 6 pegawai berGmail + 1 pegawai
+tanpa email sama sekali **diminta membuat/pakai akun institusional**
+(staff.uns.ac.id / mipa.uns.ac.id). **Tindak lanjut administratif**
+(bukan kode) — belum dieksekusi, perlu pengguna hubungi 7 orang ini
+langsung/lewat HR fakultas. Nama-nama: Andryas Dewi Pratiwi, Fendy
+Prasetyo Nugroho, Risky Sukoco, Zidna Fatha Nazhifa, Suwanto, Imam Tri
+Hartono (6 Gmail) + Agnar Pradipa Daniswara (tanpa email).
+
+**Backlog audit kelengkapan master pegawai (2026-09-05) kini SELESAI
+SEMUA** (no_hp tersinkron, 7 koreksi SIMPEG diterapkan, kebijakan akses
+diputuskan — tinggal tindak lanjut administratif di luar kode).
+
+Lanjut: shared library `eip/client` (fondasi wajib sblm app Perencanaan
+ATAU Pengadaan bisa mulai — keduanya app terpisah genuinely), atau
+diskusikan dulu prioritas bisnis mana yg lebih mendesak fakultas.
