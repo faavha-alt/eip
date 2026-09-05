@@ -410,3 +410,47 @@ Dibuat: 2026-09-03
 - Lanjut: Langkah 2 (integrasi pilot sistem lama), shared library
   `eip/client` (kini relevan utk Perencanaan/Pengadaan/Akademik yg
   genuinely terpisah), atau mulai app Perencanaan/Pengadaan.
+
+### 2026-09-05 (lanjutan — sinkron data dgn rekap resmi SIMPEG)
+- Pengguna dapat akses lihat SIMPEG (https://simpeg.uns.ac.id, perlu SSO
+  login — dicoba WebFetch dulu, tidak bisa krn butuh sesi login; Claude in
+  Chrome jg tidak tersedia di sesi CLI remote ini, cuma bisa dari Desktop
+  app Windows lokal). Solusi aktual: pengguna sudah py rekap ekspor SIMPEG
+  lengkap (`docs/rekap_pegawai.xlsx`, 7 sheet, PII — ikut `.gitignore`
+  `*.xlsx` sama spt `data_pegawai.xlsx`).
+- **Bug kritis ditemukan & diperbaiki**: `ImportPegawaiFromExcel` salah
+  pakai format tanggal `'m/d/y'` (US) utk kolom "TMT Gol."/"TMT JF" yg
+  ternyata `DD/MM/YY` (Indonesia) — terbukti pasti dari raw value spt
+  "22/12/20" (hari 22 mustahil jadi bulan). Berdampak salah pada
+  `pegawai.tmt_golongan` HAMPIR SEMUA 190 pegawai (hari&bulan tertukar,
+  mis. 1 April jadi 4 Januari) + kemungkinan `penempatan.tgl_mulai` dari
+  TMT JF. Diperbaiki jadi `'d/m/y'`, re-run `pegawai:import` lokal &
+  produksi (idempoten via `id_sumber`, 190 update, 0 baru) — dikonfirmasi
+  benar via cross-check ke SIMPEG (id_simpeg=1087: 2018-04-01, cocok).
+- **Command baru `pegawai:sync-simpeg {path} {--dry-run}`**: cocokkan
+  pegawai via `id_simpeg` = kolom "id_sumber" tiap sheet SIMPEG (divalidasi
+  100% cocok NIP, 182/190 match — 8 sisanya memang "Data Kosong" di
+  SIMPEG, id 9901-9908 bukan ID SIMPEG asli). Mengisi `jenis_kelamin` &
+  `agama` (sblnya 100% kosong, SIMPEG = sumber resmi ASN utk field ini).
+  Import idempoten riwayat pendidikan (771 baris, sheet Pendidikan
+  Tinggi+Dasar) & riwayat pangkat/golongan (941 baris) ke tabel yg sudah
+  ada. Nilai pegawai "terkini" (`pendidikan_terakhir_id`,
+  `golongan_ruang_id`+`tmt_golongan`) DIBANDINGKAN ke riwayat SIMPEG
+  paling baru tapi TIDAK ditimpa otomatis kalau beda — cuma dilaporkan
+  sbg peringatan (10 kasus genuine tersisa setelah fix bug tanggal, turun
+  dari 180 — campuran naik/turun jenjang, butuh tinjau manual/HR, bukan
+  ditimpa otomatis krn bisa jadi SIMPEG yg lag, bukan data lama yg salah).
+- **Tabel + model baru `riwayat_jabatan`** (struktural & fungsional, arsip
+  SIMPEG read-only, 1174 baris dari sheet Jabatan Fungsional+Kelola) +
+  kartu tampilan di halaman detail pegawai. Master `golongan_ruang`
+  dilengkapi I/a-I/d & II/a-II/b, master `pendidikan` dilengkapi
+  SD/SMP/D4 (jenjang yg muncul di riwayat SIMPEG tp blm ada di seed awal).
+- Diuji: dry-run lokal & produksi menghasilkan angka identik sebelum
+  ditulis sungguhan; 1 test baru (halaman detail dgn riwayat penuh
+  termasuk jabatan) + fix 1 assertion count yg berubah krn master
+  bertambah. 48/48 test lulus. Backup DB produksi sblm migrasi
+  (`~/backups/eip_core_pre_simpeg_sync_*.sql`). File xlsx dihapus dari
+  server setelah selesai (PII, jangan tersimpan permanen di sana).
+- Lanjut: tinjau manual 10 kasus perbedaan nilai terkini (mgkn perlu
+  konfirmasi ke SIMPEG/HR langsung); Langkah 2 integrasi pilot / shared
+  library / app Perencanaan-Pengadaan.
