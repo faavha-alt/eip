@@ -454,3 +454,28 @@ Dibuat: 2026-09-03
 - Lanjut: tinjau manual 10 kasus perbedaan nilai terkini (mgkn perlu
   konfirmasi ke SIMPEG/HR langsung); Langkah 2 integrasi pilot / shared
   library / app Perencanaan-Pengadaan.
+
+### 2026-09-05 (lanjutan — integrasi pilot: wa-blast)
+- **Fase 2 dimulai**: wa-blast (panel broadcast WA humas, project terpisah)
+  disambungkan sbg konsumen `GET /api/v1/pegawai` (service client `wa-blast`,
+  ability `master:read`, token diterbitkan via `service-client:create`).
+- Fix kecil: `PegawaiController::RELATIONS` belum eager-load
+  `penempatan.unitKerja`/`penempatan.jabatan` → `unit_kerja_nama`/
+  `jabatan_nama` di response API selalu null. Diperbaiki + 2 asersi
+  regresi (`ApiV1Test`), 48/48 test tetap hijau. Deploy produksi mulus.
+- **Hairpin NAT**: wa-blast & EIP Core sehosting (203.6.149.150) tapi
+  server tak bisa menghubungi domainnya sendiri lewat IP publik (timeout).
+  Diselesaikan di sisi wa-blast (`CURLOPT_RESOLVE` ke `127.0.0.1`) —
+  tak perlu perubahan di EIP Core.
+- **Ditemukan data kotor**: sebagian `no_hp` pegawai (asal migrasi SIMPEG)
+  bukan nomor telepon sama sekali (mis. `"5/4/222691635"`). wa-blast
+  menambah validasi (wajib berawalan `628`) sebelum memakainya — TIDAK
+  perlu perbaikan data di EIP Core (field `no_hp` memang bukan sumber
+  utama nomor WA; wa-blast tetap acuan nomor).
+- Sinkron pertama sukses: 190 pegawai → 190 kontak baru di wa-blast
+  (1 nonaktif → diblacklist otomatis). Nama & unit kerja tersinkron;
+  nomor HP TIDAK ikut disinkron balik (SSOT nomor tetap di wa-blast).
+  Cron nightly `03:15` di wa-blast utk sinkron berkelanjutan.
+- Lanjut: Perencanaan/Pengadaan/Akademik (app terpisah), atau shared
+  library `eip/client`, atau integrasi sistem lama berikutnya (gaji/aset/
+  logistik) dgn pola yang sama.
