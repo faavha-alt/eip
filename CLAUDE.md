@@ -67,6 +67,24 @@ sendiri (bukan DB terpisah) — Kepegawaian **dipindah jadi modul di dalam EIP
 Core**, bukan app terpisah. Perencanaan/Pengadaan/Akademik TETAP direncanakan
 terpisah krn py data sendiri yang genuinely beda (rencana, pengajuan).
 
+**Revisi 2026-09-05 (Aset & Persediaan/Logistik BHP): pisahkan PROSES, bukan
+cuma sambungkan.** Sistem **Aset** dan **Logistik BHP** yang lama saat ini
+masing-masing menyatukan **3 proses jadi satu**: perencanaan, pengadaan, dan
+pencatatan (registry aset / stok persediaan). Ini dianggap salah tempat.
+
+Target ke depan: app **Perencanaan** dan **Pengadaan** baru — **lintas-domain**
+(BUKAN khusus aset; menangani juga kebutuhan persediaan/BHP dan lainnya) —
+mengambil alih 2 proses pertama. Sistem **Aset** & **Logistik BHP** lama
+diperamping jadi **HANYA pencatatan** (Aset: registry/kondisi/lokasi/
+penyusutan; Logistik BHP/Persediaan: stok masuk-keluar) — **dua sistem
+pencatatan yang tetap terpisah & sejajar** (bukan digabung jadi satu sistem
+"pencatatan barang"), baru disambungkan baca master pegawai dari EIP Core
+(pola sama spt wa-blast/gaji lain).
+
+**Urutan garapan disepakati (revisi dari urutan §8 sebelumnya):**
+Perencanaan → Pengadaan → refactor Aset (pencatatan-only) → refactor
+Persediaan/Logistik BHP (pencatatan-only). Detail fase: §8.
+
 ```
    ┌─────────────────────────────────────────────────┐
    │                  EIP Core                        │
@@ -75,10 +93,12 @@ terpisah krn py data sendiri yang genuinely beda (rencana, pengajuan).
    │  RBAC terpusat · portal SSO · API /api/v1/        │
    └───┬─────────┬─────────┬────────────────┬─────────┘
        │ baca     │ baca     │ baca (API)     │ baca (API)
-  ┌────┴───┐ ┌────┴────┐ ┌───┴──────┐  ┌──────┴───┐┌─────────┐┌───────────┐
-  │Perenc. │ │Pengadaan│ │ Akademik │  │  Gaji    ││  Aset   ││ Logistik  │
-  │ (app)  │ │ (app)   │ │ (nanti)  │  │ (lama)   ││ (lama)  ││  (lama)   │
-  └────────┘ └─────────┘ └──────────┘  └──────────┘└─────────┘└───────────┘
+  ┌────┴───┐ ┌────┴────┐ ┌───┴──────┐  ┌──────┴───┐┌─────────────┐┌─────────────┐
+  │Perenc. │ │Pengadaan│ │ Akademik │  │  Gaji    ││Aset          ││Persediaan   │
+  │ (app,  │ │ (app,   │ │ (nanti)  │  │ (lama)   ││(lama, akan   ││/Logistik BHP│
+  │lintas- │ │lintas-  │ │          │  │          ││diperamping = ││(lama, akan  │
+  │domain) │ │domain)  │ │          │  │          ││pencatatan sj)││diperamping) │
+  └────────┘ └─────────┘ └──────────┘  └──────────┘└──────────────┘└─────────────┘
                                     ┌────────────────┐
                                     │  WA blast       │
                                     │  (terpisah)     │
@@ -132,6 +152,14 @@ terpisah krn py data sendiri yang genuinely beda (rencana, pengajuan).
    peran user via API / klaim token. Role manual per akun.
 8. **Workflow = State Machine di backend** app pemilik proses; approval
    mengikuti hierarki `unit_kerja` (dibaca dari EIP Core).
+9. **Perencanaan & Pengadaan = lintas-domain, bukan khusus aset** (keputusan
+   2026-09-05): sistem Aset & Logistik BHP lama saat ini salah mencampur 3
+   proses (perencanaan+pengadaan+pencatatan) jadi satu. App Perencanaan &
+   Pengadaan baru mengambil alih 2 proses pertama utk SEMUA kebutuhan
+   (aset, persediaan/BHP, dst) — Aset & Logistik BHP lama diperamping jadi
+   **hanya pencatatan**, tetap 2 sistem terpisah & sejajar (bukan digabung).
+   Urutan garapan: Perencanaan → Pengadaan → refactor Aset → refactor
+   Persediaan. Detail: §1, §8.
 
 ---
 
@@ -179,7 +207,8 @@ master khusus modul saat modul tsb mulai.
 - Institusi: **Fakultas MIPA, Universitas Sebelas Maret (UNS)** — domain
   `eip.mipa.uns.ac.id` (hosting disiapkan pengguna). Tim kecil (1–2 orang), in-house.
 - Sistem lama: **gaji, aset, logistik** = Laravel + MySQL, beroperasi & tetap
-  dipakai.
+  dipakai. Aset & Logistik (Persediaan) rencana diperamping jadi pencatatan-
+  only setelah Perencanaan/Pengadaan baru ada (§1, §8).
 - Ada **Google Workspace** (SSO). Identitas resmi ASN: **NIP, NIK, ID_SIMPEG**.
 - Ada **server WA blast** terpisah yg sudah dirancang.
 
@@ -190,17 +219,31 @@ master khusus modul saat modul tsb mulai.
 Urutan diselaraskan ke **nilai & risiko** (bukan sekadar urutan modul).
 Rincian langkah teknis per fase: `docs/04-analisis-dan-rencana-eksekusi.md`.
 
+**Revisi 2026-09-05**: Perencanaan digeser maju sebelum Pengadaan (semula
+sebaliknya), dan ditambah 2 fase refactor "pencatatan-only" utk Aset &
+Persediaan/Logistik BHP (lihat §1 rasional lengkapnya).
+
 1. **Fase 0 — EIP Core:** master (`unit_kerja` → `pegawai` → `jabatan`,
    `organisasi`), RBAC, OIDC, `audit_log`, API `/api/v1/`, portal SSO. ✅
 2. **Fase 1 — Modul Kepegawaian (di EIP Core):** CRUD pegawai + penempatan +
-   direktori; penulis tunggal master (langsung via Eloquent, satu app).
-3. **Fase 2 — Integrasi pilot:** sync master ke **1 sistem lama** (mis.
-   logistik) sbg pembuktian pola; sambungkan **WA blast**. (Naik dari fase
-   akhir → di sini, karena risiko integrasi terbesar.)
-4. **Fase 3 — App Pengadaan:** pengajuan + approval berjenjang + notifikasi WA.
-5. **Fase 4 — App Perencanaan:** modul baru; kaitkan output ke pengadaan.
-6. **Fase 5 — Sisa sistem lama** (gaji, aset) baca dari EIP Core.
-7. **Fase 6 — App Akademik (nanti):** pola master & approval sama.
+   direktori; penulis tunggal master (langsung via Eloquent, satu app). ✅
+3. **Fase 2 — Integrasi pilot:** sambungkan **WA blast** (2 arah — EIP→wa-blast
+   master data, wa-blast→EIP nomor HP) sbg pembuktian pola integrasi. ✅
+4. **Fase 3 — App Perencanaan:** app baru, **lintas-domain** (bukan khusus
+   aset) — proses perencanaan yg saat ini terjebak di sistem Aset/Logistik
+   BHP lama pindah ke sini.
+5. **Fase 4 — App Pengadaan:** app baru, **lintas-domain**, sama alasannya;
+   pengajuan + approval berjenjang + notifikasi WA; kaitkan ke output
+   Perencanaan.
+6. **Fase 5 — Refactor Aset:** sistem Aset lama diperamping jadi **HANYA
+   pencatatan** (registry/kondisi/lokasi/penyusutan) — proses perencanaan &
+   pengadaan aset yg lama dilepas, digantikan Fase 3–4. Sambungkan baca
+   master pegawai dari EIP Core.
+7. **Fase 6 — Refactor Persediaan (Logistik BHP):** pola identik Fase 5 —
+   diperamping jadi **HANYA pencatatan stok** (masuk-keluar), tetap sistem
+   terpisah & sejajar dgn Aset (bukan digabung). Sambungkan ke EIP Core.
+8. **Fase 7 — Gaji** baca dari EIP Core.
+9. **Fase 8 — App Akademik (nanti):** pola master & approval sama.
 
 ---
 

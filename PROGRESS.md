@@ -630,3 +630,39 @@ diputuskan — tinggal tindak lanjut administratif di luar kode).
 Lanjut: shared library `eip/client` (fondasi wajib sblm app Perencanaan
 ATAU Pengadaan bisa mulai — keduanya app terpisah genuinely), atau
 diskusikan dulu prioritas bisnis mana yg lebih mendesak fakultas.
+
+### 2026-09-05 (lanjutan — keputusan arsitektur: Perencanaan/Pengadaan lintas-domain, Aset & Persediaan diperamping)
+
+Diskusi arah fitur EIP berikutnya (setelah "data selesai dulu") memunculkan
+temuan arsitektur penting dari pengguna: **sistem Aset & Logistik BHP
+(Persediaan) yang lama saat ini salah mencampur 3 proses jadi satu** —
+perencanaan, pengadaan, DAN pencatatan (registry aset / stok persediaan).
+
+**Keputusan (final, dicatat CLAUDE.md §1/§3/§7/§8):**
+- App **Perencanaan** & **Pengadaan** baru dibangun **lintas-domain** (BUKAN
+  khusus utk aset) — mengambil alih proses perencanaan+pengadaan utk semua
+  kebutuhan (aset, persediaan/BHP, dan lainnya).
+- Sistem **Aset** & **Logistik BHP** lama diperamping jadi **HANYA
+  pencatatan** (Aset: registry/kondisi/lokasi/penyusutan; Logistik BHP/
+  Persediaan: stok masuk-keluar) — **tetap 2 sistem terpisah & sejajar**,
+  BUKAN digabung jadi satu sistem "pencatatan barang" (dikonfirmasi
+  eksplisit oleh pengguna: "tapi ya setara, sistem pencatatan aset dan
+  persediaan bhp").
+- **Urutan garapan direvisi**: Perencanaan → Pengadaan → refactor Aset →
+  refactor Persediaan (Logistik BHP). Sebelumnya urutan Fase 3/4 di §8
+  adalah Pengadaan dulu baru Perencanaan — DIBALIK.
+
+**Belum dieksekusi** — ini keputusan arah/urutan, belum ada kode yg
+dibangun. Fase 0-2 (EIP Core, Kepegawaian, integrasi wa-blast) sudah ✅.
+
+Analisis fitur utama EIP Core lain yg juga diusulkan sesi ini (blm
+diputuskan prioritasnya, msh terbuka): audit trail sungguhan (tabel
+`audit_logs` ada tp 0 baris, tak ada kode yg menulis ke situ — gap
+kepercayaan utk sistem SSOT), notifikasi proaktif via wa-blast (pensiun/
+KGB/kontrak habis/dokumen kadaluarsa), laporan/ekspor kepegawaian,
+self-service profil pegawai, event/webhook keluar utk sistem lama.
+
+Lanjut: mulai shared library `eip/client` (fondasi wajib sblm app
+Perencanaan bisa jalan, krn Perencanaan sekarang di urutan pertama), atau
+rancang detail lingkup app Perencanaan lintas-domain dulu (data apa yg
+direncanakan — aset? BHP? keduanya? perlu didalami sblm desain skema).
