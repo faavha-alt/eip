@@ -958,3 +958,36 @@ Planning) — dipilih pengguna, kesan enterprise software + konotasi
 APP_NAME + brand UI. Folder/repo tetap `perencanaan` (istilah
 domain/roadmap). Idea nama pairing utk app Pengadaan nanti: mis.
 "PROCURA" (blm diputuskan).
+
+### 2026-09-05 (lanjutan — STRAP LIVE di produksi)
+
+Pengguna siapkan hosting `strap.mipa.uns.ac.id` (server SAMA dgn EIP
+Core, 203.6.149.150, CloudPanel, user `strap`, MySQL 8.4 DB `strap`).
+
+- SSH: keypair `~/.ssh/id_ed25519_strap_web` + alias `strap-web` (mesin
+  dev). Public key didaftarkan pengguna ke server.
+- **Deploy pakai pola wa-blast** (bukan GitHub+pull spt eip-core): Node
+  TIDAK ada di server → `deploy.sh` build vite di lokal, kirim kode via
+  `git archive | ssh tar x`, kirim `public/build` terpisah, lalu
+  composer/migrate/cache di server. Tak perlu GitHub remote.
+- **Bug hairpin NAT KE-3** (pola identik): STRAP `EipClient` panggil
+  `eip.mipa.uns.ac.id` dari server yg sama → timeout. Fix sama:
+  `CURLOPT_RESOLVE` ke 127.0.0.1 (config `services.eip.local_ip` /
+  `EIP_LOCAL_IP`). **Pola ini SELALU muncul utk app baru sehosting EIP
+  Core — pasang dari awal di app berikutnya.**
+- `.env` produksi diisi (DB, APP_KEY, `EIP_TOKEN` service-client
+  `perencanaan` ability master:read, EIP_LOCAL_IP). GOOGLE_CLIENT_ID/
+  SECRET masih kosong — nunggu OAuth client (redirect
+  `https://strap.mipa.uns.ac.id/auth/google/callback`).
+- **Kendala docroot**: CloudPanel default document root = root site,
+  bukan `/public`. Situs 403 sampai pengguna ubah "Root Directory" di
+  CloudPanel ke `htdocs/strap.mipa.uns.ac.id/public`. Setelah diubah:
+  jalan.
+- **Verifikasi produksi**: `/` → 200 (halaman login STRAP), `/up` → 200,
+  CSS/`build` ter-serve, **EipClient dari server strap BERHASIL** panggil
+  EIP Core API (21 unit_kerja, lookup pegawai by email OK). 38/38 test
+  proyek lulus.
+
+**STRAP live**, tinggal Google OAuth utk login sungguhan. Lanjut: (a)
+setup OAuth client + isi GOOGLE_*, (b) dashboard sisa-pagu STRAP, (c)
+mulai app Pengadaan.
