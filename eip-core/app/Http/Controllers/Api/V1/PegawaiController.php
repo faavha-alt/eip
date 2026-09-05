@@ -17,7 +17,10 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
  */
 class PegawaiController extends Controller
 {
-    private const RELATIONS = ['statusKepegawaian', 'pendidikanTerakhir', 'golonganRuang', 'penempatan'];
+    private const RELATIONS = [
+        'statusKepegawaian', 'pendidikanTerakhir', 'golonganRuang',
+        'penempatan.unitKerja', 'penempatan.jabatan',
+    ];
 
     public function index(Request $request): AnonymousResourceCollection
     {

@@ -67,8 +67,8 @@ class ApiV1Test extends TestCase
     {
         $this->actingAsClient();
         $pegawai = Pegawai::factory()->create();
-        $unit = UnitKerja::factory()->create();
-        $jabatan = Jabatan::factory()->create();
+        $unit = UnitKerja::factory()->create(['nama' => 'Prodi Ilmu Komputer']);
+        $jabatan = Jabatan::factory()->create(['nama' => 'Dosen']);
         Penempatan::factory()->create([
             'pegawai_id' => $pegawai->id, 'unit_kerja_id' => $unit->id,
             'jabatan_id' => $jabatan->id, 'is_posisi_utama' => true,
@@ -78,6 +78,10 @@ class ApiV1Test extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.penempatan_utama.unit_kerja_id', $unit->id);
+        // Regresi: nama unit/jabatan harus ikut termuat (dulu null krn penempatan.unitKerja/
+        // penempatan.jabatan belum di-eager-load — konsumen sprt wa-blast butuh nama ini).
+        $response->assertJsonPath('data.penempatan_utama.unit_kerja_nama', 'Prodi Ilmu Komputer');
+        $response->assertJsonPath('data.penempatan_utama.jabatan_nama', 'Dosen');
     }
 
     public function test_index_unit_kerja_jabatan_organisasi_smoke(): void
