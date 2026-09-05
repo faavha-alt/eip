@@ -144,9 +144,9 @@ class ImportPegawaiFromExcel extends Command
         $statusRaw = trim((string) ($row[14] ?? ''));
         $pendidikanRaw = trim((string) ($row[15] ?? ''));
         $golonganRuang = trim((string) ($row[16] ?? '')) ?: null;
-        $tmtGol = $this->parseTanggal($row[17] ?? null, $rowNum, 'TMT Gol.', 'm/d/y');
+        $tmtGol = $this->parseTanggal($row[17] ?? null, $rowNum, 'TMT Gol.', 'd/m/y');
         $jabFungsionalNama = trim((string) ($row[18] ?? ''));
-        $tmtJf = $this->parseTanggal($row[19] ?? null, $rowNum, 'TMT JF', 'm/d/y');
+        $tmtJf = $this->parseTanggal($row[19] ?? null, $rowNum, 'TMT JF', 'd/m/y');
         $tanggalLahir = $this->parseTanggal($row[20] ?? null, $rowNum, 'Tanggal Lahir');
         $jabatanStrukturalNama = trim((string) ($row[24] ?? ''));
 

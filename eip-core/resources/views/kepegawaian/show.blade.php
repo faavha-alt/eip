@@ -257,6 +257,30 @@
                         </form>
                     @endif
                 </div>
+
+                {{-- Riwayat Jabatan (arsip SIMPEG, read-only) --}}
+                <div class="apple-glass-card rounded-3xl p-6 sm:col-span-2">
+                    <h2 class="text-sm font-bold text-slate-900 mb-1">Riwayat Jabatan</h2>
+                    <p class="text-[10px] text-slate-400 mb-3">Arsip dari SIMPEG, hanya baca.</p>
+                    <div class="space-y-1 max-h-64 overflow-y-auto">
+                        @forelse ($pegawai->riwayatJabatan as $j)
+                            <div class="flex items-start justify-between gap-3 text-xs py-2 border-b border-slate-100 last:border-0">
+                                <div>
+                                    <p class="font-semibold text-slate-700">{{ $j->jabatan_nama }} @if($j->jabatan_detail) — {{ $j->jabatan_detail }} @endif</p>
+                                    <p class="text-[10px] text-slate-400">
+                                        {{ $j->jenis === \App\Enums\JenisRiwayatJabatan::Struktural ? 'Struktural' : 'Fungsional' }}
+                                        · TMT {{ $j->tmt_awal?->translatedFormat('d M Y') ?? '—' }}
+                                        s/d {{ $j->tmt_akhir?->translatedFormat('d M Y') ?? 'sekarang' }}
+                                        @if($j->no_sk) · SK {{ $j->no_sk }} @endif
+                                        @if($j->status) · {{ $j->status }} @endif
+                                    </p>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-xs text-slate-400">Belum ada data.</p>
+                        @endforelse
+                    </div>
+                </div>
             </div>
         </div>
     </div>

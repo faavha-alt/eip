@@ -249,6 +249,24 @@ class KepegawaianModuleTest extends TestCase
         $this->assertSoftDeleted($dokumen);
     }
 
+    public function test_halaman_detail_pegawai_tampil_dgn_riwayat_lengkap(): void
+    {
+        $user = User::factory()->create();
+        $pegawai = Pegawai::factory()->create();
+        $pegawai->riwayatPendidikan()->create(['pendidikan_id' => Pendidikan::first()->id, 'nama_institusi' => 'Universitas Contoh']);
+        $pegawai->riwayatPangkatGolongan()->create(['golongan_ruang_id' => GolonganRuang::first()->id, 'tmt' => '2020-01-01']);
+        $pegawai->riwayatJabatan()->create([
+            'jenis' => 'struktural', 'jabatan_nama' => 'Kepala Bagian Contoh',
+            'tmt_awal' => '2021-01-01', 'tmt_akhir' => null, 'status' => 'PJD',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('kepegawaian.show', $pegawai));
+
+        $response->assertOk()
+            ->assertSee('Universitas Contoh')
+            ->assertSee('Kepala Bagian Contoh');
+    }
+
     public function test_sub_resource_kepegawaian_ditolak_tanpa_role(): void
     {
         $user = User::factory()->create();

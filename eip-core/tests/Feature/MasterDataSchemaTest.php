@@ -100,8 +100,8 @@ class MasterDataSchemaTest extends TestCase
     public function test_master_status_pendidikan_golongan_terisi_dari_migrasi(): void
     {
         $this->assertSame(4, StatusKepegawaian::count());
-        $this->assertSame(6, Pendidikan::count());
-        $this->assertSame(11, GolonganRuang::count());
+        $this->assertSame(9, Pendidikan::count());
+        $this->assertSame(17, GolonganRuang::count());
         $this->assertNotNull(StatusKepegawaian::where('kode', 'pns')->first());
         $this->assertNotNull(Pendidikan::where('kode', 's3')->first());
         $this->assertNotNull(GolonganRuang::where('kode', 'IV/e')->first());

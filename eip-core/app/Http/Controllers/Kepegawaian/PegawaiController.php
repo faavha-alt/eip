@@ -67,6 +67,7 @@ class PegawaiController extends Controller
             'penempatan' => fn ($q) => $q->with(['unitKerja', 'jabatan'])->orderByDesc('tgl_mulai'),
             'riwayatPendidikan.pendidikan',
             'riwayatPangkatGolongan.golonganRuang',
+            'riwayatJabatan' => fn ($q) => $q->orderByDesc('tmt_awal'),
             'keluarga',
             'dokumen',
         ]);

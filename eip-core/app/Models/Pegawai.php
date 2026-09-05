@@ -102,6 +102,12 @@ class Pegawai extends Model
         return $this->hasMany(KeluargaPegawai::class);
     }
 
+    /** Histori jabatan struktural & fungsional (arsip SIMPEG). */
+    public function riwayatJabatan(): HasMany
+    {
+        return $this->hasMany(RiwayatJabatan::class);
+    }
+
     /** Arsip dokumen resmi (SK, ijazah, dst). */
     public function dokumen(): HasMany
     {
