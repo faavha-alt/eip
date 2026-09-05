@@ -988,6 +988,15 @@ Core, 203.6.149.150, CloudPanel, user `strap`, MySQL 8.4 DB `strap`).
   EIP Core API (21 unit_kerja, lookup pegawai by email OK). 38/38 test
   proyek lulus.
 
-**STRAP live**, tinggal Google OAuth utk login sungguhan. Lanjut: (a)
-setup OAuth client + isi GOOGLE_*, (b) dashboard sisa-pagu STRAP, (c)
-mulai app Pengadaan.
+**STRAP live & Google OAuth SELESAI** (2026-09-05): pengguna hanya
+menambah redirect URI `https://strap.mipa.uns.ac.id/auth/google/callback`
+ke OAuth client Google yg SUDAH ADA (dipakai bersama EIP Core — beda dari
+rencana awal CLAUDE.md §7 "tiap app OIDC client sendiri", tapi pragmatis
+& diterima). `GOOGLE_CLIENT_ID`/`SECRET` disalin dari `.env` eip-web ke
+strap-web (server-to-server, tak lewat chat). Diverifikasi:
+`/auth/google/redirect` → 302 ke accounts.google.com dgn redirect_uri
+benar. **STRAP siap dipakai penuh.**
+
+Lanjut: (a) dashboard sisa-pagu STRAP, (b) mulai app Pengadaan (consume
+permintaan STRAP + isi vendor/realisasi balik), (c) integrasi pilot
+sistem lama berikutnya.
