@@ -178,10 +178,16 @@ class ImportPegawaiFromExcel extends Command
 
         $isActive = $statusKode !== 'purna_tugas';
         $gelar = $this->parseGelar($nama);
+        $idSumber = trim((string) $row[1]);
 
         $pegawai = Pegawai::updateOrCreate(
-            ['id_sumber' => trim((string) $row[1])],
+            ['id_sumber' => $idSumber],
             [
+                // Kolom "ID" di sumber = ID SIMPEG asli (dikonfirmasi
+                // pemilik data), bukan cuma id baris internal — isi
+                // keduanya: id_sumber (kunci impor idempoten) & id_simpeg
+                // (kunci resmi matching ke SIMPEG, docs/01).
+                'id_simpeg' => $idSumber,
                 'nip' => $nip,
                 'nik' => $nik,
                 'npwp' => $npwp,
