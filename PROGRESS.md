@@ -1000,3 +1000,36 @@ benar. **STRAP siap dipakai penuh.**
 Lanjut: (a) dashboard sisa-pagu STRAP, (b) mulai app Pengadaan (consume
 permintaan STRAP + isi vendor/realisasi balik), (c) integrasi pilot
 sistem lama berikutnya.
+
+### 2026-09-05 (lanjutan — STRAP v1 SELESAI, semua scope docs/05 tuntas)
+
+"Selesaikan full apa rencana di perencanaan" → sisa scope v1 docs/05
+dikerjakan & dideploy:
+
+- **Dashboard** (`DashboardController` + view): sisa pagu per unit×jenis
+  (scope unit utk non-admin), ringkasan jumlah permintaan per status,
+  daftar permintaan terbaru. `/` & `/dashboard` → dashboard (bukan lagi
+  redirect ke /permintaan).
+- **Halaman detail permintaan** (`permintaan.show`) — read-only + panel
+  sisa pagu + (admin) form ubah status.
+- **State machine status** (docs/05 §6): `StatusPermintaan` dpt method
+  `label()`/`badge()`/`transisiBerikut()`/`bisaTransisiKe()`.
+  `PermintaanController::ubahStatus` (admin) — validasi transisi ikut
+  state machine, hitung `total_realisasi` saat `direalisasikan`, isi
+  `vendor_id`. **Dikelola admin manual sampai app Pengadaan otomasi
+  lewat API** (kontrak API Pengadaan blm dirancang, docs/05 §7).
+- **Notifikasi** (docs/05 §8): `PermintaanPerluPenyesuaian` (kanal
+  `mail` + `database`) dikirim ke pengaju saat status →
+  `perlu_penyesuaian`. `NotifikasiController` + halaman `/notifikasi` +
+  lonceng badge unread di header. wa-blast SENGAJA blm (docs/05 §10).
+- Migrasi: kolom `catatan` di `permintaan` + tabel `notifications`.
+- 7 test baru → **45/45 test lulus**. Deploy produksi mulus, skema
+  terverifikasi (`notifications` table, `catatan` col ada).
+
+**STRAP v1 = seluruh scope docs/05 SELESAI & LIVE.** Yang tersisa
+genuinely butuh app Pengadaan (inbound API `/api/v1/*` + Sanctum/
+ServiceClient) atau keputusan lanjut (wa-blast notif, import data lama
+Fase 5/6).
+
+Lanjut: mulai app Pengadaan, ATAU integrasi pilot sistem lama berikutnya,
+ATAU audit trail EIP Core (`audit_logs` masih 0 baris).
