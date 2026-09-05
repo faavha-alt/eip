@@ -63,6 +63,18 @@ class ApiV1Test extends TestCase
         $response->assertOk()->assertJsonCount(1, 'data');
     }
 
+    public function test_index_pegawai_filter_email(): void
+    {
+        $this->actingAsClient();
+        Pegawai::factory()->create(['email' => 'target@staff.uns.ac.id']);
+        Pegawai::factory()->create(['email' => 'lain@staff.uns.ac.id']);
+
+        $response = $this->getJson('/api/v1/pegawai?email=target@staff.uns.ac.id');
+
+        $response->assertOk()->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.email', 'target@staff.uns.ac.id');
+    }
+
     public function test_show_pegawai_menyertakan_penempatan_utama(): void
     {
         $this->actingAsClient();

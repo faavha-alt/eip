@@ -30,6 +30,10 @@ class PegawaiController extends Controller
             $query->where('is_active', $request->boolean('is_active'));
         }
 
+        if ($request->filled('email')) {
+            $query->where('email', $request->input('email'));
+        }
+
         if ($request->filled('unit_kerja_id')) {
             $query->whereHas('penempatan', fn ($q) => $q
                 ->where('unit_kerja_id', $request->input('unit_kerja_id'))
