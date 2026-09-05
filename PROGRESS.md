@@ -364,3 +364,20 @@ Dibuat: 2026-09-03
 - CLAUDE.md §1/§3/§8 diperbarui reflect revisi ini.
 - Cakupan v1 (default, blm dikonfirmasi eksplisit): CRUD pegawai +
   penempatan + direktori/pencarian. Riwayat/keluarga/dokumen menyusul.
+- **Modul dibangun & di-deploy**: `app/Support/PegawaiRules` (validasi
+  bersama API+modul), middleware `role:xxx` (`EnsureHasRole` — lolos kalau
+  py role yg disebut ATAU `admin`), routes `/kepegawaian` (index/show
+  publik-login, create/edit/update+penempatan digerbang role), 5 view
+  (index/show/create/edit/_form) gaya AeroDeck. Business rule: penempatan
+  baru `is_posisi_utama=true` otomatis menutup posisi utama lama (cegah 2
+  aktif sekaligus — gap yg sempat dicatat sesi sebelumnya).
+- Role `admin-kepegawaian` ditetapkan ke `favha@staff.uns.ac.id` di
+  produksi. Sidebar EIP Core diperbarui: "Direktori Pegawai" & "Ringkasan"
+  jadi link sungguhan dgn state aktif.
+- Diuji: 10 test modul baru + render manual data asli 190 pegawai
+  (index/show/create, termasuk pegawai jabatan struktural) — bersih.
+  41/41 test proyek lulus. Deploy produksi mulus, 190 pegawai tak
+  terganggu.
+- Lanjut: isi riwayat_pendidikan/pangkat/keluarga/dokumen dari UI (msh
+  cuma tampil, blm ada form input), ATAU integrasi pilot sistem lama,
+  ATAU shared library `eip/client`, ATAU mulai app Perencanaan/Pengadaan.
