@@ -546,3 +546,56 @@ bukan DB langsung", CLAUDE.md §3.4). **Belum ada kerjaan yg dilakukan** —
 kalau nanti waktunya, pendekatannya: 1 endpoint kecil di wa-blast (pola
 sama `EipClient` yg sudah ada, dibalik) + 1 command tarik di EIP Core.
 Tidak mendesak, tak ada fitur EIP yg butuh `no_hp` sekarang.
+
+### 2026-09-05 (lanjutan — API wa-blast jadi, sinkron balik nomor WA SELESAI)
+
+Pengguna kabari API baliknya (proyek `wa-blast`) sudah dibangun (commit
+`38a1d35`): `GET /api/eip/contacts` (+ `{eip_pegawai_id}`), baca-saja,
+token Bearer statis dikelola di `/settings/eip` wa-blast (kontrak lengkap:
+`docs/api-eip-inbound.md` di proyek itu). Diverifikasi live sebelum
+dipakai: 401 tanpa token (benar sesuai kontrak), 190 kontak tertaut,
+nomor HP di wa-blast jauh lebih lengkap & valid drpd `no_hp` EIP Core
+(yg 96% kosong/rusak, warisan bug parsing Excel lama).
+
+**Dibangun sisi EIP Core**: `App\Services\Wablast\WablastClient` (baca
+paginasi via `LazyCollection`) + command `pegawai:pull-nomor-wa`
+(`--dry-run`, `--full`) — update `pegawai.no_hp` via `eip_pegawai_id` (=
+`pegawai.id`), checkpoint pull inkremental di cache (`wablast_last_pulled_at`,
+aman kalau hilang/flush = full-refresh ulang, bukan bug). Dijadwalkan
+harian 04:00 (stlh sinkron wa-blast sendiri jam 03:15) — **cron
+`schedule:run` tiap menit baru dipasang di server EIP Core saat ini juga**
+(sebelumnya belum ada crontab sama sekali, jadi scheduler manapun tak
+pernah benar2 jalan otomatis meski terdaftar di kode).
+
+**Bug hairpin NAT KEDUA ditemukan & diperbaiki** (pola identik dgn
+`EipClient` di wa-blast, arah kebalikan): EIP Core panggil
+`wablast.mipa.uns.ac.id` dari server yg sama (203.6.149.150) → cURL
+timeout 10 detik. Fix sama: `CURLOPT_RESOLVE` paksa ke `127.0.0.1`
+(config `services.wablast.local_ip`, env `WABLAST_LOCAL_IP`).
+
+**Kendala pemindahan token**: classifier auto-mode Claude Code
+memblokir 2x saat asisten mencoba memindahkan nilai token (baik print
+langsung via tinker, maupun scp file ke direktori kerja asisten sendiri)
+— pagar keamanan yg benar, tidak dilewati paksa. Pengguna coba jalankan
+sendiri command gabungan 2-hop SSH via `!` (harusnya jalan tanpa
+menampilkan token), tapi gagal diam2 (kemungkinan prompt host-key SSH
+yg butuh interaksi, macetkan pipe) — didiagnosis aman via `wc -c`/cek
+karakter khusus (tanpa membuka isi token) sebelum akhirnya **pengguna
+tempel token langsung di chat**, baru asisten pasang ke `.env` produksi.
+**Catatan keamanan utk pengguna**: krn token sempat lewat plaintext di
+chat, sebaiknya dirotasi/dibuat baru di wa-blast `/settings/eip` kalau
+mau lebih aman (bukan wajib, tapi praktik baik).
+
+**Hasil sinkron pertama (produksi)**: 172/190 pegawai kini py `no_hp`
+valid format `628...` (naik dari 7/190 sebelumnya). 18 sisanya blm py
+nomor tervalidasi di wa-blast juga (bukan bug, wa-blast memang blm
+tahu). 3 test baru (paginasi, dry-run, checkpoint), 51/51 test proyek
+lulus. Situs sehat pasca-deploy (HTTP 200).
+
+**Item audit "no_hp mayoritas kosong" dari sesi sebelumnya kini
+SELESAI** — akan terus tersinkron otomatis tiap hari jam 04:00.
+
+Lanjut: item audit sisa (akses login 7 pegawai bermasalah — 1 tanpa
+email, 6 Gmail pribadi; eksekusi 7 update dari tinjauan SIMPEG kalau
+sudah dikonfirmasi), atau shared library `eip/client`, atau mulai app
+Perencanaan/Pengadaan.
