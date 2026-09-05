@@ -897,3 +897,38 @@ belum push kemana pun).
 Lanjut: bangun controller+view Permintaan (unified form utk kedua
 jenis) & Pagu (admin input/revisi), ATAU siapkan hosting+domain dulu
 spt pola eip-core/wa-blast, ATAU keduanya paralel.
+
+### 2026-09-05 (lanjutan — fitur inti CRUD Perencanaan selesai)
+
+"Lanjut" → dibangun fitur inti di `/ai/projects/perencanaan`:
+
+- **PermintaanController** (fitur utama): form UNIFIED utk kedua jenis
+  (pengadaan_barang & pemeliharaan/laporan-kerusakan) sesuai desain §2.
+  **Hard block pagu** via `PaguService` di store & update (saat update,
+  nilai lama permintaan itu sendiri dikecualikan dari hitungan terpakai).
+  TANPA approval gate. Non-admin scope ke unit sendiri
+  (`user.eip_unit_kerja_id` dari login); admin bisa pilih unit lain &
+  lihat semua. Batal/cancel → status `dibatalkan`.
+- **PaguController**: ledger (tiap penetapan/revisi = baris baru, tak
+  update baris lama), admin saja, tanpa alur approval utk penetapan pagu.
+- **PeriodeAnggaranController**: hanya 1 periode aktif (transaksi saat
+  toggle aktif).
+- **KategoriKebutuhanController**: master data admin (tambah/ubah/hapus,
+  tak bisa hapus kalau dipakai permintaan).
+- `App\Support\Eip` — cache 1 jam utk daftar unit_kerja dari EIP Core API.
+- Seeder: role `admin` + 3 kategori awal. Command `role:assign`.
+- Layout + view Blade PLAIN (CSS inline seadanya, pola sama halaman auth)
+  — **pass desain AeroDeck belum dilakukan**.
+- 16 test controller baru (hard block pagu berbagai skenario, 2 pool
+  pagu independen, scope unit, gerbang role admin, ledger pagu, toggle
+  periode) — **36/36 test proyek `perencanaan` lulus**, Pint bersih.
+
+**Belum**: pass desain UI (AeroDeck), hosting/domain + deploy.sh +
+GitHub remote, alur "penyesuaian" pasca-harga-riil (butuh app Pengadaan
+dulu — dari sisi Perencanaan status baru bisa diajukan/dibatalkan),
+notifikasi. Detail: `CLAUDE.md` proyek `perencanaan`.
+
+Lanjut: (a) pass desain UI Perencanaan (adaptasi AeroDeck), (b)
+siapkan hosting/domain + deploy, (c) mulai app Pengadaan (yg akan
+meng-consume permintaan Perencanaan & mengisi vendor/realisasi balik),
+atau (d) dashboard Perencanaan (ringkasan sisa pagu per unit/jenis).
