@@ -204,6 +204,21 @@ diimpor datanya (lihat §7).
 **Nilai "terpakai" dari pagu** per baris = `COALESCE(total_realisasi,
 estimasi_total)` — selalu pakai angka paling akurat yg diketahui saat itu.
 
+### 4.5 `permintaan_log` (jejak status — append-only)
+
+Satu baris per transisi status (termasuk pembuatan): `permintaan_id`,
+`status_lama` (nullable), `status_baru`, `catatan` (nullable), `oleh`
+(user id, nullable), `created_at`. Dipakai utk timeline di halaman
+detail — transparansi bolak-balik prodi ↔ admin.
+
+### 4.6 `permintaan_lampiran` (berkas pendukung)
+
+`permintaan_id`, `path`, `nama_asli`, `mime`, `ukuran`,
+`diunggah_oleh`, timestamps. Utk penawaran/quotation vendor (PDF),
+brosur spesifikasi, foto kerusakan dari beberapa sudut. Maks 5 MB /
+berkas, 8 berkas. Kolom `foto` di `permintaan` tetap jadi **gambar
+utama** (terpisah dari lampiran).
+
 ---
 
 ## 5. Aturan kontrol pagu (KUNCI — hard constraint)
@@ -343,7 +358,18 @@ Git terpisah, sibling `eip`/`wa-blast`). Selesai & terpasang produksi:
   pengajuan unit itu. Baris Fakultas = sisa otomatis, di-highlight.
 - Form pengajuan diperkaya: nama, merk, tipe, spesifikasi, link referensi,
   upload gambar, jumlah, harga.
-- UI AeroDeck, responsif mobile (drawer checkbox-hack). 53 test lulus.
+- **Riwayat status** (§4.5) — timeline di halaman detail.
+- **Lampiran ganda** (§4.6) — PDF/gambar/dok pendukung.
+- **Notifikasi lengkap**: admin dapat kabar tiap pengajuan baru;
+  pengaju dapat kabar saat direalisasikan / dibatalkan.
+- **Laporan / Rekap Kebutuhan**: filter (periode/jenis/status/unit/
+  kategori) → rekap per unit & per kategori, unduh CSV, halaman cetak.
+- **Halaman Pengguna** (admin): lihat akun + login terakhir, toggle
+  admin/pengaju/aktif — kelola akses tanpa tinker.
+- Dashboard: pemilih periode (lihat periode lampau) + bagian
+  "kebutuhan per kategori".
+- UI AeroDeck, responsif mobile; input rupiah berpemisah ribuan;
+  flash = toast. 67 test lulus.
 
 Detail lengkap: `PROGRESS.md` di sini + `CLAUDE.md` proyek `perencanaan`.
 

@@ -1132,3 +1132,39 @@ Form + halaman detail render semua field baru + preview gambar.
 dashboard render anggaran+konsumsi). 53/53 STRAP lulus. Dideploy +
 verifikasi produksi: kolom `merk`/`link_referensi` ada, asset
 `dashboard-*.js` di manifest, site 200. docs/05 §4.4 & §11 diperbarui.
+
+### 2026-09-06 (lanjutan — STRAP: design pass + fitur lanjutan borongan)
+
+Pengguna: "Design secara cantik ya" → semua view diangkat: hero band
+gelap gradient utk angka fokus, meter bersegmen, donut berlabel total
+di tengah, bar gradient, chip status, dropzone foto/lampiran, kartu
+angka di halaman detail. Token baru di `app.css`: `.aero-hero`,
+`.aero-hero-num`, `.meter`, `.stat-chip`.
+
+Lalu "Kerjakan smuanya" (dari daftar rekomendasi analis) — semua
+dikerjakan:
+- **Riwayat status** `permintaan_log` (append-only, dicatat saat
+  diajukan/ubah status/batal) → timeline di halaman detail.
+- **Notifikasi lengkap**: `PermintaanBaruDiajukan` (→ semua admin aktif
+  saat prodi mengajukan — `User::adminAktif()`), `PermintaanStatusBerubah`
+  (→ pengaju saat direalisasikan/dibatalkan). Tiap notif punya `tipe`.
+- **Lampiran ganda** `permintaan_lampiran` (PDF/gambar/dok, maks 5 MB
+  ×8) — upload di form, daftar+hapus di detail. `foto` tetap gambar utama.
+- **Laporan / Rekap Kebutuhan** (`LaporanController`): filter periode/
+  jenis/status/unit/kategori → rekap per unit & per kategori, unduh CSV
+  (BOM UTF-8, delimiter ";"), halaman cetak standalone (grup per unit +
+  subtotal + total). Non-admin discope ke unitnya. Menu "Laporan" utk
+  semua user.
+- **Dashboard**: pemilih periode (lihat periode lampau via `?periode=`)
+  + bagian "Kebutuhan per kategori" (bar per jenis).
+- **Halaman Pengguna** (`PenggunaController`, admin): daftar akun +
+  login terakhir + toggle admin/pengaju/aktif; tak bisa ubah akses akun
+  sendiri. Hilangkan ketergantungan tinker.
+- Desain: input rupiah berpemisah ribuan (`resources/js/app.js`,
+  `data-rupiah`), flash → toast (auto-hilang, `aria-live`), header
+  konsisten Kategori & Periode, `aria-label` tombol ikon, filter status
+  di daftar permintaan.
+
+14 test baru (total 67/67 STRAP lulus). Dideploy + migrasi prod
+(`permintaan_log`, `permintaan_lampiran` ada), rute `/laporan`
+`/pengguna` `/laporan/csv` 302→login (bukan 500), site 200.
