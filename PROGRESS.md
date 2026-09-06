@@ -1168,3 +1168,15 @@ dikerjakan:
 14 test baru (total 67/67 STRAP lulus). Dideploy + migrasi prod
 (`permintaan_log`, `permintaan_lampiran` ada), rute `/laporan`
 `/pengguna` `/laporan/csv` 302→login (bukan 500), site 200.
+
+**Catatan terbuka dicatat** (detail lengkap di `perencanaan/CLAUDE.md`
+§"Catatan terbuka"): (1) walkthrough manual produksi STRAP belum
+dilakukan — semua fitur baru diuji hanya lewat test controller/render,
+bukan klik nyata; (2) SMTP + queue worker server STRAP belum
+dipastikan — notifikasi kirim sinkron, fan-out `PermintaanBaruDiajukan`
+ke semua admin saat request "Ajukan"; (3) alur "penyesuaian" belum
+mulus (edit pengaju tak ubah status & tak masuk `permintaan_log`).
+Lintas-proyek yg masih menggantung: **audit trail EIP Core**
+(`audit_logs` 0 baris, tak ada penulis) — garap atau park eksplisit;
+keputusan **shared library `eip/client`** vs salin `EipClient` per app
+(diputuskan saat app Pengadaan mulai).
