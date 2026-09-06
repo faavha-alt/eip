@@ -1065,4 +1065,13 @@ Nuansa dicatat di `config/strap.php`: "Kepala Laboratorium" juga cocok
 utk lab fakultas (mis. "Kepala Laboratorium MIPA Terpadu"); "Kepala UPT
 Laboratorium..." TIDAK cocok (prefix beda). Sesuaikan bila perlu.
 
-Import data lama (Fase 5/6) — pengguna bilang "nanti mungkin sambil test".
+Import data lama (Fase 5/6) — "nanti sambil test".
+
+### 2026-09-06 (lanjutan — STRAP UI mobile)
+
+Sidebar sblmnya `hidden lg:flex` → di HP tak ada navigasi/logout sama
+sekali. Ditambah: drawer slide-in (checkbox-hack, tanpa JS) + hamburger
+di header; nav & userbox diekstrak ke partial `_nav`/`_userbox` (dipakai
+bersama sidebar desktop & drawer). body page-scroll di mobile, inner-
+scroll di lg. Tabel: kolom sekunder `hidden sm/md/lg:table-cell`. 47/47
+test STRAP lulus, dideploy & verifikasi produksi OK.
