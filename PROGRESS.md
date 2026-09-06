@@ -1180,3 +1180,48 @@ Lintas-proyek yg masih menggantung: **audit trail EIP Core**
 (`audit_logs` 0 baris, tak ada penulis) — garap atau park eksplisit;
 keputusan **shared library `eip/client`** vs salin `EipClient` per app
 (diputuskan saat app Pengadaan mulai).
+
+### 2026-09-06 (lanjutan — EIP Core: halaman master + penonaktifan unit)
+
+Pengguna: "selesaikan halaman master2 (master prodi dll)" + "karena
+Informatika & Farmasi sudah keluar fakultas, bisa tidak prodi
+dinonaktifkan supaya nama itu tidak muncul di list."
+
+Temuan: semua model master (`unit_kerja`, `jabatan`, `organisasi`,
+`golongan_ruang`, `pendidikan`, `status_kepegawaian`) SUDAH punya
+`is_active` + SoftDeletes — tinggal halaman + filter. Belum ada halaman
+admin master sama sekali (baru modul Kepegawaian). Di produksi **tidak
+ada prodi "Informatika"**; yang ada S-1 Farmasi (id 34) + Profesi
+Apoteker (id 35), keduanya masih aktif — target nyata penonaktifan.
+
+Keputusan (AskUserQuestion): (a) cakupan = Unit Kerja + Jabatan +
+Organisasi (master kecil menyusul); (b) API sembunyikan nonaktif
+default + opt-in `?status=all`; (c) akses `role:admin` (bukan
+`admin-kepegawaian`).
+
+Dibangun:
+- `app/Http/Controllers/Master/{UnitKerja,Jabatan,Organisasi}Controller`
+  — index (filter jenis/status/cari + hitung aktif/nonaktif), create,
+  store, edit, update, `toggleAktif`. Kode otomatis dari nama bila
+  dikosongkan (unik, cek `withTrashed`). Prefix `/master`, `role:admin`.
+- View `resources/views/master/**` (AeroDeck, raw Tailwind spt
+  kepegawaian) + partial `_flash`. Nav sidebar: 3 menu master
+  menggantikan placeholder "Unit Kerja & Jabatan", hanya utk admin.
+- API `/api/v1/{unit-kerja,jabatan,organisasi}`: default `where(is_active
+  true)`; `?status=all` (semua, utk sinkron), `?status=inactive`
+  (audit). Resource sudah ekspos `is_active` sejak awal.
+- Kepegawaian: form tambah penempatan hanya tawarkan unit/jabatan aktif;
+  `PenempatanController::store` tolak unit/jabatan nonaktif
+  (`Rule::exists(...)->where('is_active', true)`).
+- Data tetap tersimpan (histori penempatan utuh), hanya disembunyikan
+  dari picker & API default.
+
+10 test baru (`MasterOrganisasiControllerTest` + API filter di
+`ApiV1Test`). 62/62 EIP Core lulus. Dideploy (`5070c45`), `/master/*`
+302→login, tinker prod: filter jalan (21 aktif = 21 total, `all`=21).
+
+**Belum dieksekusi (keputusan pengguna):** penonaktifan S-1 Farmasi +
+Profesi Apoteker di produksi — bisa lewat UI baru; catatan: pegawai
+yang masih ditempatkan di situ (mis. Kaprodi/Kalab Farmasi) TIDAK ikut
+pindah otomatis. Master kecil (golongan/pendidikan/status) belum
+dibuatkan halaman.
