@@ -1075,3 +1075,27 @@ di header; nav & userbox diekstrak ke partial `_nav`/`_userbox` (dipakai
 bersama sidebar desktop & drawer). body page-scroll di mobile, inner-
 scroll di lg. Tabel: kolom sekunder `hidden sm/md/lg:table-cell`. 47/47
 test STRAP lulus, dideploy & verifikasi produksi OK.
+
+### 2026-09-06 (lanjutan — STRAP: model Anggaran Global → alokasi prodi → sisa Fakultas)
+
+Permintaan pengguna: "pagu anggaran itu utk menentukan anggaran global
+dulu bisa tidak. Anggaran global. Dibagi ke prodi, sisanya untuk
+fakultas." → docs/05 §4.3 direvisi.
+
+Model baru: admin tetapkan **Anggaran Global** per (periode, jenis)
+dulu → bagi ke tiap prodi (`pagu`) → **pagu Fakultas = Global − Σ
+alokasi prodi**, DIHITUNG (tidak diinput). Alokasi prodi tak boleh
+melebihi global; global tak boleh < total alokasi (hard block dua arah).
+
+- Tabel+model `anggaran_global` (ledger, revisable). `pagu` sekarang =
+  alokasi unit NON-Fakultas saja (Rule::notIn unit fakultas).
+- `PaguService`: `globalTerkini()`, `totalAlokasi()`, `plafon()`
+  (Fakultas = global − Σ alokasi; unit lain = nominal alokasi). `sisa()`
+  & `cukup()` pakai `plafon()` — transparan ke PermintaanController.
+- `config strap.unit_fakultas_id` = 1 (FMIPA di EIP Core; unik, root,
+  jenis_unit=fakultas — sudah dicek).
+- `pagu/index` didesain ulang: per jenis → form Anggaran Global + tabel
+  alokasi prodi + baris "Fakultas MIPA (sisa, otomatis)" highlighted
+  read-only + form alokasi. Dashboard pakai `plafon()`.
+- 6 test baru, 51/51 STRAP lulus. Dideploy + verifikasi produksi
+  (`anggaran_global` table ada, config OK, site 200).

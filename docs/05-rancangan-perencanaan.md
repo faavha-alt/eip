@@ -126,24 +126,46 @@ kategori "Alat Lab" bisa relevan baik utk beli baru maupun servis).
 | `is_active` | boolean | Hanya 1 periode aktif pada satu waktu |
 | timestamps + soft deletes | | |
 
-### 4.3 `pagu` (ledger/riwayat — UNIFIED utk kedua jenis)
+### 4.3 Anggaran: global → alokasi prodi → sisa Fakultas (revisi 2026-09-06)
 
-**Pola sama seperti `riwayat_pangkat_golongan` di EIP Core**: pagu BISA
-DIREVISI DI TENGAH PERIODE (dikonfirmasi pengguna) — bukan satu kolom
-nilai yg di-update di tempat, tapi ledger append-only. "Pagu saat ini"
-= baris terbaru per (unit_kerja, periode, jenis).
+Model anggaran (menggantikan "pagu per unit termasuk Fakultas" di draft
+awal): admin **tetapkan Anggaran Global lebih dulu** per (periode,
+jenis) → **bagi ke tiap prodi** → **pagu Fakultas = Global − Σ alokasi
+prodi**, DIHITUNG (tidak diinput). Alokasi prodi tidak boleh melebihi
+global (hard block). Semua ledger — tiap penetapan/revisi = baris baru,
+bisa direvisi tengah periode, "nilai saat ini" = baris terbaru by
+`berlaku_sejak`.
+
+**`anggaran_global`** — plafon total per (periode, jenis):
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | `id` | bigint PK | |
-| `unit_kerja_id` | bigint | Referensi ke EIP Core (id disalin lokal via API, bukan FK lintas-DB) — **termasuk Fakultas sendiri**, bukan cuma prodi (dikonfirmasi: pagu dibagi ke semua unit penerima) |
 | `periode_anggaran_id` | bigint FK | |
-| `jenis` | enum: `pengadaan_barang`, `pemeliharaan` | **Dua pool independen** — belanja pemeliharaan & belanja modal adalah jenis anggaran berbeda di institusi pemerintah, tidak boleh saling memotong |
-| `nominal` | decimal(15,2) | Pagu berlaku sejak baris ini |
-| `berlaku_sejak` | date | Tanggal efektif revisi |
-| `ditetapkan_oleh` | bigint (user id) | Pagu ditentukan langsung Fakultas, diinput admin — TANPA alur approval tersendiri utk penetapan pagu |
+| `jenis` | enum: `pengadaan_barang`, `pemeliharaan` | Dua pool independen |
+| `nominal` | decimal(15,2) | Global berlaku sejak baris ini |
+| `berlaku_sejak` | date | |
+| `ditetapkan_oleh` | bigint (user id) | Admin, tanpa alur approval |
 | `keterangan` | text, nullable | Alasan revisi |
 | timestamps + soft deletes | | |
+
+**`pagu`** — alokasi ke unit NON-Fakultas (prodi, bagian):
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | bigint PK | |
+| `unit_kerja_id` | bigint | Referensi EIP Core (id disalin lokal). **BUKAN** unit Fakultas (id 1 = FMIPA, `config strap.unit_fakultas_id`) — itu dihitung |
+| `periode_anggaran_id` | bigint FK | |
+| `jenis` | enum | Dua pool independen |
+| `nominal` | decimal(15,2) | Alokasi berlaku sejak baris ini |
+| `berlaku_sejak` | date | |
+| `ditetapkan_oleh` | bigint (user id) | |
+| `keterangan` | text, nullable | |
+| timestamps + soft deletes | | |
+
+`PaguService::plafon($unit, $periode, $jenis)` = angka batas atas efektif:
+Fakultas → `globalTerkini − Σ alokasi prodi`; unit lain → nominal alokasi
+terkini. `sisa()` = `plafon − terpakai`.
 
 Index: `(unit_kerja_id, periode_anggaran_id, jenis, berlaku_sejak)` —
 "pagu terkini" = `ORDER BY berlaku_sejak DESC LIMIT 1` per kombinasi.
