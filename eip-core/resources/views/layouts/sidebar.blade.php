@@ -51,10 +51,20 @@
                 Direktori Pegawai
             </a>
 
-            <a href="#" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium text-xs transition-all">
-                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M19 21H5m0 0H3m8-16h.01M11 12h.01M11 16h.01M15 8h.01M15 12h.01M15 16h.01"/></svg>
-                Unit Kerja &amp; Jabatan
-            </a>
+            @if (auth()->user()->roles->contains('kode', 'admin'))
+                <a href="{{ route('master.unit-kerja.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl {{ request()->routeIs('master.unit-kerja.*') ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60' }} font-medium text-xs transition-all">
+                    <svg class="w-4 h-4 {{ request()->routeIs('master.unit-kerja.*') ? 'text-indigo-400' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M19 21H5m0 0H3m8-16h.01M11 12h.01M11 16h.01M15 8h.01M15 12h.01M15 16h.01"/></svg>
+                    Unit Kerja
+                </a>
+                <a href="{{ route('master.jabatan.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl {{ request()->routeIs('master.jabatan.*') ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60' }} font-medium text-xs transition-all">
+                    <svg class="w-4 h-4 {{ request()->routeIs('master.jabatan.*') ? 'text-indigo-400' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    Jabatan
+                </a>
+                <a href="{{ route('master.organisasi.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl {{ request()->routeIs('master.organisasi.*') ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60' }} font-medium text-xs transition-all">
+                    <svg class="w-4 h-4 {{ request()->routeIs('master.organisasi.*') ? 'text-indigo-400' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M3 7v14m18-14v14M6 21V4a1 1 0 011-1h10a1 1 0 011 1v17M9 7h1m-1 4h1m4-4h1m-1 4h1"/></svg>
+                    Organisasi
+                </a>
+            @endif
         </div>
 
         <div class="space-y-1">

@@ -8,6 +8,9 @@ use App\Http\Controllers\Kepegawaian\PegawaiController;
 use App\Http\Controllers\Kepegawaian\PenempatanController;
 use App\Http\Controllers\Kepegawaian\RiwayatPangkatGolonganController;
 use App\Http\Controllers\Kepegawaian\RiwayatPendidikanController;
+use App\Http\Controllers\Master\JabatanController as MasterJabatanController;
+use App\Http\Controllers\Master\OrganisasiController as MasterOrganisasiController;
+use App\Http\Controllers\Master\UnitKerjaController as MasterUnitKerjaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -53,5 +56,29 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::get('/{pegawai}', [PegawaiController::class, 'show'])->name('show');
+    });
+
+    // Master organisasi (unit kerja, jabatan, organisasi) — admin saja.
+    Route::middleware('role:admin')->prefix('master')->name('master.')->group(function () {
+        Route::get('/unit-kerja', [MasterUnitKerjaController::class, 'index'])->name('unit-kerja.index');
+        Route::get('/unit-kerja/baru', [MasterUnitKerjaController::class, 'create'])->name('unit-kerja.create');
+        Route::post('/unit-kerja', [MasterUnitKerjaController::class, 'store'])->name('unit-kerja.store');
+        Route::get('/unit-kerja/{unitKerja}/ubah', [MasterUnitKerjaController::class, 'edit'])->name('unit-kerja.edit');
+        Route::put('/unit-kerja/{unitKerja}', [MasterUnitKerjaController::class, 'update'])->name('unit-kerja.update');
+        Route::patch('/unit-kerja/{unitKerja}/aktif', [MasterUnitKerjaController::class, 'toggleAktif'])->name('unit-kerja.aktif');
+
+        Route::get('/jabatan', [MasterJabatanController::class, 'index'])->name('jabatan.index');
+        Route::get('/jabatan/baru', [MasterJabatanController::class, 'create'])->name('jabatan.create');
+        Route::post('/jabatan', [MasterJabatanController::class, 'store'])->name('jabatan.store');
+        Route::get('/jabatan/{jabatan}/ubah', [MasterJabatanController::class, 'edit'])->name('jabatan.edit');
+        Route::put('/jabatan/{jabatan}', [MasterJabatanController::class, 'update'])->name('jabatan.update');
+        Route::patch('/jabatan/{jabatan}/aktif', [MasterJabatanController::class, 'toggleAktif'])->name('jabatan.aktif');
+
+        Route::get('/organisasi', [MasterOrganisasiController::class, 'index'])->name('organisasi.index');
+        Route::get('/organisasi/baru', [MasterOrganisasiController::class, 'create'])->name('organisasi.create');
+        Route::post('/organisasi', [MasterOrganisasiController::class, 'store'])->name('organisasi.store');
+        Route::get('/organisasi/{organisasi}/ubah', [MasterOrganisasiController::class, 'edit'])->name('organisasi.edit');
+        Route::put('/organisasi/{organisasi}', [MasterOrganisasiController::class, 'update'])->name('organisasi.update');
+        Route::patch('/organisasi/{organisasi}/aktif', [MasterOrganisasiController::class, 'toggleAktif'])->name('organisasi.aktif');
     });
 });

@@ -126,6 +126,28 @@ class ApiV1Test extends TestCase
         $this->getJson('/api/v1/organisasi')->assertOk()->assertJsonCount(1, 'data');
     }
 
+    public function test_index_master_sembunyikan_nonaktif_secara_default(): void
+    {
+        $this->actingAsClient();
+        $org = Organisasi::factory()->create();
+        UnitKerja::factory()->create(['organisasi_id' => $org->id, 'nama' => 'S-1 Aktif', 'is_active' => true]);
+        UnitKerja::factory()->create(['organisasi_id' => $org->id, 'nama' => 'S-1 Pindah', 'is_active' => false]);
+        Jabatan::factory()->create(['is_active' => false]);
+        Jabatan::factory()->create(['is_active' => true]);
+
+        $this->getJson('/api/v1/unit-kerja')->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.nama', 'S-1 Aktif');
+        $this->getJson('/api/v1/jabatan')->assertOk()->assertJsonCount(1, 'data');
+
+        // Opt-in: ?status=all mengembalikan semua (utk proses sinkron).
+        $this->getJson('/api/v1/unit-kerja?status=all')->assertOk()->assertJsonCount(2, 'data');
+        // ?status=inactive utk audit.
+        $this->getJson('/api/v1/unit-kerja?status=inactive')->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.nama', 'S-1 Pindah');
+    }
+
     public function test_store_pegawai_ditolak_tanpa_ability_pegawai_write(): void
     {
         $this->actingAsClient(['master:read']);

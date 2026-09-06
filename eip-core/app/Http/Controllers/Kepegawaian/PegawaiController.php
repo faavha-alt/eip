@@ -74,8 +74,9 @@ class PegawaiController extends Controller
 
         return view('kepegawaian.show', [
             'pegawai' => $pegawai,
-            'unitKerjaOptions' => UnitKerja::orderBy('nama')->get(['id', 'nama']),
-            'jabatanOptions' => Jabatan::orderBy('nama')->get(['id', 'nama']),
+            // Form "tambah penempatan" — hanya unit/jabatan aktif yg boleh dipilih.
+            'unitKerjaOptions' => UnitKerja::where('is_active', true)->orderBy('nama')->get(['id', 'nama']),
+            'jabatanOptions' => Jabatan::where('is_active', true)->orderBy('nama')->get(['id', 'nama']),
             'pendidikanOptions' => Pendidikan::orderBy('jenjang')->get(['id', 'nama']),
             'golonganOptions' => GolonganRuang::orderBy('tingkat')->get(['id', 'kode']),
         ]);

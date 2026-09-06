@@ -14,6 +14,12 @@ class JabatanController extends Controller
     {
         $query = Jabatan::query()->orderBy('nama');
 
+        match ($request->input('status')) {
+            'all' => null,
+            'inactive' => $query->where('is_active', false),
+            default => $query->where('is_active', true),
+        };
+
         if ($request->filled('jenis')) {
             $query->where('jenis', $request->input('jenis'));
         }

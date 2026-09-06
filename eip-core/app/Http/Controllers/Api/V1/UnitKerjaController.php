@@ -14,6 +14,15 @@ class UnitKerjaController extends Controller
     {
         $query = UnitKerja::query()->with('kepala')->orderBy('nama');
 
+        // Default: hanya yg aktif (unit yg dinonaktifkan mis. prodi pindah
+        // fakultas tak lagi muncul di picker konsumen). ?status=all utk
+        // proses sinkron yg butuh semua; ?status=inactive utk audit.
+        match ($request->input('status')) {
+            'all' => null,
+            'inactive' => $query->where('is_active', false),
+            default => $query->where('is_active', true),
+        };
+
         if ($request->filled('parent_id')) {
             $query->where('parent_id', $request->input('parent_id'));
         }

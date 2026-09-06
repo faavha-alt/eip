@@ -14,8 +14,9 @@ class PenempatanController extends Controller
     public function store(Request $request, Pegawai $pegawai): RedirectResponse
     {
         $data = $request->validate([
-            'unit_kerja_id' => ['required', 'integer', 'exists:unit_kerja,id'],
-            'jabatan_id' => ['required', 'integer', 'exists:jabatan,id'],
+            // Cegah menempatkan pegawai ke unit/jabatan yg sudah dinonaktifkan.
+            'unit_kerja_id' => ['required', 'integer', Rule::exists('unit_kerja', 'id')->where('is_active', true)],
+            'jabatan_id' => ['required', 'integer', Rule::exists('jabatan', 'id')->where('is_active', true)],
             'tgl_mulai' => ['required', 'date'],
             'is_posisi_utama' => ['sometimes', 'boolean'],
         ]);

@@ -14,6 +14,12 @@ class OrganisasiController extends Controller
     {
         $query = Organisasi::query()->orderBy('nama');
 
+        match ($request->input('status')) {
+            'all' => null,
+            'inactive' => $query->where('is_active', false),
+            default => $query->where('is_active', true),
+        };
+
         if ($request->filled('updated_since')) {
             $query->where('updated_at', '>=', $request->date('updated_since'));
         }
