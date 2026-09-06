@@ -181,9 +181,13 @@ Index: `(unit_kerja_id, periode_anggaran_id, jenis, berlaku_sejak)` —
 | `kategori_kebutuhan_id` | bigint FK | |
 | `diajukan_oleh` | bigint (pegawai id, dari EIP Core) | **Siapa saja pegawai di unit boleh mengajukan** (dikonfirmasi, khusus jenis pemeliharaan — berlaku sama utk konsistensi) |
 | `nama_kebutuhan` | string | Nama barang, ATAU ringkasan kerusakan/kebutuhan servis |
-| `deskripsi` | text, nullable | Detail tambahan/deskripsi kerusakan |
+| `merk` | string, nullable | Opsional — merk barang yg diminta |
+| `tipe` | string, nullable | Opsional — tipe/model barang yg diminta |
+| `spesifikasi` | text, nullable | Spesifikasi teknis yg diinginkan (bebas teks) |
+| `link_referensi` | string, nullable | URL referensi produk/toko (divalidasi `url`) |
+| `deskripsi` | text, nullable | Catatan tambahan/deskripsi kerusakan (kolom `catatan` di DB) |
 | `aset_terkait_id` | bigint, nullable | Hanya relevan `jenis=pemeliharaan` — referensi ke Aset yg mau diperbaiki (via API ke sistem Aset, nullable krn aset kadang belum tercatat resmi) |
-| `foto` | string (path), nullable | Bukti kondisi/kerusakan, opsional |
+| `foto` | string (path), nullable | Gambar barang / bukti kondisi kerusakan — upload ke disk `public` (`permintaan-foto/`), maks 3 MB, opsional |
 | `jumlah` | integer, default 1 | |
 | `estimasi_harga_satuan` | decimal(15,2) | |
 | `estimasi_total` | decimal(15,2) | `jumlah × estimasi_harga_satuan`, disimpan (bukan dihitung on-the-fly) supaya histori "rencana awal" tidak berubah kalau harga satuan diedit |
@@ -320,12 +324,29 @@ padanan lama) menyiapkan kolom referensi ke ID sistem lama (pola
 
 ## 11. Status & langkah berikut
 
-Desain selesai (2026-09-05). **Scaffold dimulai (2026-09-05, sesi sama)**
-di `/ai/projects/perencanaan` (repo Git terpisah, sibling `eip`/`wa-blast`,
-BUKAN subfolder di sini): migrasi §4 lengkap, `EipClient` (baca-saja,
-bukan composer package terpisah — pola pragmatis sama spt wa-blast),
-`PaguService` (implementasi §5), auth Google OIDC + RBAC. 20 test lulus.
+Desain selesai (2026-09-05). **Aplikasi LIVE** di
+`https://strap.mipa.uns.ac.id` (nama produk **STRAP**; repo `perencanaan`,
+Git terpisah, sibling `eip`/`wa-blast`). Selesai & terpasang produksi:
+
+- Migrasi §4 lengkap + `anggaran_global` (§4.3 revisi 2026-09-06) +
+  perkaya field `permintaan` (`merk`, `tipe`, `spesifikasi`, `link_referensi`).
+- `EipClient` (baca-saja, pola pragmatis spt wa-blast; fix hairpin-NAT
+  `CURLOPT_RESOLVE` ke `127.0.0.1`), `PaguService` (§5, model global→
+  alokasi→sisa Fakultas), auth Google OIDC + RBAC.
+- Gerbang akses: hanya Kaprodi/Kalab (auto dari jabatan EIP Core,
+  `config/strap.php`) + admin yg boleh mengajukan.
+- CRUD Permintaan / Pagu / Kategori / Periode; state machine §6;
+  notifikasi (`mail` + `database`).
+- **Dashboard visual** (Chart.js): donut pembagian anggaran, bar
+  terpakai-vs-sisa per unit, tabel konsumsi per prodi (pagu / terpakai /
+  sisa / serapan % / jumlah pengajuan) dgn drill "Lihat →" ke daftar
+  pengajuan unit itu. Baris Fakultas = sisa otomatis, di-highlight.
+- Form pengajuan diperkaya: nama, merk, tipe, spesifikasi, link referensi,
+  upload gambar, jumlah, harga.
+- UI AeroDeck, responsif mobile (drawer checkbox-hack). 53 test lulus.
+
 Detail lengkap: `PROGRESS.md` di sini + `CLAUDE.md` proyek `perencanaan`.
 
-**Belum ada**: controller/view CRUD (Permintaan/Pagu/Kategori Kebutuhan),
-hosting/domain, GitHub remote. Ini langkah lanjutan berikutnya.
+**Langkah berikut**: app Pengadaan (inbound API STRAP `/api/v1/*` +
+Sanctum service-client), kanal notifikasi WA blast, import data lama
+(Fase 5/6, sambil test).

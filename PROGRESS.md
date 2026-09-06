@@ -1099,3 +1099,36 @@ melebihi global; global tak boleh < total alokasi (hard block dua arah).
   read-only + form alokasi. Dashboard pakai `plafon()`.
 - 6 test baru, 51/51 STRAP lulus. Dideploy + verifikasi produksi
   (`anggaran_global` table ada, config OK, site 200).
+
+### 2026-09-06 (lanjutan — STRAP: dashboard pagu visual + field pengajuan diperkaya)
+
+Permintaan pengguna: "buatkan dashboard yang lengkap untuk pagu anggaran
+... biar bisa dilihat secara visual. Dan jika sudah ada pengajuan dari
+prodi admin bisa lihat berkurang berapa ... saat pengajuan diberi nama,
+spesifikasi, upload gambar dan link, jumlah, harga. Merk & type boleh."
+
+**Pengajuan (`permintaan`)** — migrasi `perkaya_field_permintaan`:
+kolom `merk`, `tipe`, `spesifikasi` (text), `link_referensi` (string,
+validasi `url`). `foto` (sudah ada di skema) kini benar dipakai —
+upload gambar ke disk `public` (`permintaan-foto/`, maks 3 MB, hapus
+file lama saat diganti) via helper `PermintaanController::tanganiFoto()`.
+Form + halaman detail render semua field baru + preview gambar.
+
+**Dashboard (`DashboardController` + `dashboard.blade.php` +
+`resources/js/dashboard.js`)** — Chart.js (`npm i chart.js`):
+- Per jenis (pengadaan_barang / pemeliharaan): kartu Global / Ke Prodi /
+  Sisa Fakultas / Terpakai.
+- Donut "pembagian anggaran" (plafon tiap prodi + irisan Fakultas-sisa).
+- Bar horizontal stacked "terpakai vs sisa" per unit.
+- Tabel konsumsi per unit: pagu, terpakai (Σ `nilaiTerpakai()`
+  pengajuan non-batal), sisa, bar serapan % (indigo <80, amber ≥80,
+  rose ≥100), jumlah pengajuan, link "Lihat →" ke
+  `permintaan.index?unit_kerja_id=&jenis=` (drill ke pengajuan prodi).
+- Baris Fakultas (sisa otomatis) di-highlight. Non-admin discope ke
+  unitnya. Grid status 6 kartu tetap di atas.
+- Layout: `@stack('scripts')` ditambah di `layouts/app.blade.php`.
+
+3 test baru (field lengkap + upload foto tersimpan, url invalid ditolak,
+dashboard render anggaran+konsumsi). 53/53 STRAP lulus. Dideploy +
+verifikasi produksi: kolom `merk`/`link_referensi` ada, asset
+`dashboard-*.js` di manifest, site 200. docs/05 §4.4 & §11 diperbarui.
