@@ -1033,3 +1033,36 @@ Fase 5/6).
 
 Lanjut: mulai app Pengadaan, ATAU integrasi pilot sistem lama berikutnya,
 ATAU audit trail EIP Core (`audit_logs` masih 0 baris).
+
+### 2026-09-06 — STRAP: batasi akses ke Kaprodi/Kalab (otomatis dari jabatan EIP Core)
+
+Requirement pengguna: "hanya kaprodi dan kalab prodi yg bisa masuk dan
+pengajuan". Dipilih pendekatan **otomatis dari jabatan EIP Core** (bukan
+daftar RBAC manual), krn "siapa kaprodi" sudah jadi data resmi di EIP
+Core (24 jabatan struktural "Ketua Program Studi ..."/"Kepala
+Laboratorium ...").
+
+**EIP Core** (commit `8d7ca2f`, dideploy): `PegawaiResource` +field
+`jabatan` — array SEMUA penempatan (id/kode/nama/jenis/unit_kerja_id/
+is_posisi_utama), bukan cuma `penempatan_utama`. Alasan: jabatan
+struktural kaprodi/kalab biasanya BUKAN posisi utama (utama = dosen).
++1 test, 53/53 lulus.
+
+**STRAP**: `GoogleAuthController` saat login cek array `jabatan` —
+kalau ada jabatan `jenis=struktural` berawalan pola di
+`config/strap.php` (`Ketua Program Studi` / `Kepala Laboratorium`) →
+`users.is_pengaju=true`. Gate login: `bolehMengajukan()` =
+`is_pengaju || hasRole('admin')`; tak lolos → halaman
+`auth.belum-berwenang`. Guard jg di `PermintaanController::create/store`.
+47/47 test STRAP lulus. Dideploy + diverifikasi produksi: kolom ada,
+API EIP Core kirim `jabatan` array (dites Kaprodi asli Prof. Ahmad
+Ainurofiq → "Ketua Program Studi S1 Farmasi [struktural]" muncul).
+
+`favha@staff.uns.ac.id` dijadikan **admin STRAP** (row user dibuat via
+tinker, nanti ter-link saat login Google).
+
+Nuansa dicatat di `config/strap.php`: "Kepala Laboratorium" juga cocok
+utk lab fakultas (mis. "Kepala Laboratorium MIPA Terpadu"); "Kepala UPT
+Laboratorium..." TIDAK cocok (prefix beda). Sesuaikan bila perlu.
+
+Import data lama (Fase 5/6) — pengguna bilang "nanti mungkin sambil test".
