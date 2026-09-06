@@ -57,6 +57,19 @@ class PegawaiResource extends JsonResource
 
                 return $utama ? new PenempatanResource($utama) : null;
             }),
+            // Semua jabatan yg dipegang (dosen + rangkap struktural, dst) —
+            // penempatan_utama saja tidak cukup krn jabatan struktural
+            // (kaprodi/kalab) biasanya BUKAN posisi utama.
+            'jabatan' => $this->whenLoaded('penempatan', fn () => $this->penempatan
+                ->filter(fn ($p) => $p->jabatan !== null)
+                ->map(fn ($p) => [
+                    'id' => $p->jabatan->id,
+                    'kode' => $p->jabatan->kode,
+                    'nama' => $p->jabatan->nama,
+                    'jenis' => $p->jabatan->jenis->value,
+                    'unit_kerja_id' => $p->unit_kerja_id,
+                    'is_posisi_utama' => (bool) $p->is_posisi_utama,
+                ])->values()),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

@@ -96,6 +96,24 @@ class ApiV1Test extends TestCase
         $response->assertJsonPath('data.penempatan_utama.jabatan_nama', 'Dosen');
     }
 
+    public function test_pegawai_menyertakan_semua_jabatan_termasuk_rangkap_non_utama(): void
+    {
+        $this->actingAsClient();
+        $pegawai = Pegawai::factory()->create();
+        $prodi = UnitKerja::factory()->create();
+        $dosen = Jabatan::factory()->create(['nama' => 'Dosen']);
+        $kaprodi = Jabatan::factory()->create(['nama' => 'Ketua Program Studi S1 Kimia']);
+        Penempatan::factory()->create(['pegawai_id' => $pegawai->id, 'unit_kerja_id' => $prodi->id, 'jabatan_id' => $dosen->id, 'is_posisi_utama' => true]);
+        Penempatan::factory()->create(['pegawai_id' => $pegawai->id, 'unit_kerja_id' => $prodi->id, 'jabatan_id' => $kaprodi->id, 'is_posisi_utama' => false]);
+
+        $response = $this->getJson('/api/v1/pegawai?email='.$pegawai->email);
+
+        $response->assertOk();
+        $namaJabatan = collect($response->json('data.0.jabatan'))->pluck('nama');
+        $this->assertTrue($namaJabatan->contains('Dosen'));
+        $this->assertTrue($namaJabatan->contains('Ketua Program Studi S1 Kimia'));
+    }
+
     public function test_index_unit_kerja_jabatan_organisasi_smoke(): void
     {
         $this->actingAsClient();
